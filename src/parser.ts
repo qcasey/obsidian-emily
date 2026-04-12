@@ -29,7 +29,9 @@ export function parseLogEntries(
 		const match = line.match(ENTRY_REGEX);
 		if (!match) continue;
 
-		const [, time, topic, valueStr, narration] = match;
+		const [, time, rawTopic, valueStr, narration] = match;
+		// Handle [[Target|Alias]] — use Target, discard Alias
+		const topic = (rawTopic as string).split("|")[0] as string;
 		const value = parseFloat(valueStr as string);
 
 		const [hours, minutes] = (time as string).split(":").map(Number);
