@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-emily",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Mood and topic tracking visualization for daily notes.",
 	"main": "main.js",
 	"type": "module",
