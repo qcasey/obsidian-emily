@@ -4,6 +4,9 @@ import type {DateRange, ResolvedTopic, TrackingEntry} from "./types";
 import {DataService} from "./data-service";
 import {renderTimeline} from "./chart/timeline";
 import {renderStats} from "./chart/stats";
+import {renderCorrelation} from "./chart/correlation";
+import {renderHeatmap} from "./chart/heatmap";
+import {renderTimeOfDay} from "./chart/timeofday";
 import {getTheme} from "./chart/theme";
 
 export const VIEW_TYPE_EMILY = "emily-tracker";
@@ -15,12 +18,16 @@ export class TrackingView extends ItemView {
 	private enabledTopics: Set<string> = new Set();
 	private typeOverrides: Map<string, "range" | "spike" | "spike_full"> = new Map();
 	private aggOverrides: Map<string, "none" | "sum" | "average"> = new Map();
+	private sectionToggles = {correlation: true, heatmap: true, timeOfDay: true};
 	private dateRange: DateRange;
 	private resizeObserver: ResizeObserver | null = null;
 
 	// DOM elements
 	private toolbarEl: HTMLElement;
 	private chartEl: HTMLElement;
+	private correlationEl: HTMLElement;
+	private heatmapEl: HTMLElement;
+	private timeOfDayEl: HTMLElement;
 	private statsEl: HTMLElement;
 	private legendEl: HTMLElement;
 	private tooltipEl: HTMLElement;
@@ -65,6 +72,11 @@ export class TrackingView extends ItemView {
 
 		// Chart
 		this.chartEl = contentEl.createEl("div", {cls: "emily-chart"});
+
+		// Additional visualizations
+		this.correlationEl = contentEl.createEl("div", {cls: "emily-correlation"});
+		this.heatmapEl = contentEl.createEl("div", {cls: "emily-heatmap"});
+		this.timeOfDayEl = contentEl.createEl("div", {cls: "emily-timeofday"});
 
 		// Stats
 		this.statsEl = contentEl.createEl("div", {cls: "emily-stats"});
@@ -128,6 +140,21 @@ export class TrackingView extends ItemView {
 			this.dateRange.end = new Date(endInput.value + "T23:59:59");
 			this.refresh();
 		});
+
+		// Section toggles
+		const sections = this.toolbarEl.createEl("div", {cls: "emily-section-toggles"});
+		for (const [key, label] of [["correlation", "Corr"], ["heatmap", "Heat"], ["timeOfDay", "Time"]] as const) {
+			const btn = sections.createEl("button", {
+				cls: "emily-preset-btn",
+				text: label,
+			});
+			if (this.sectionToggles[key]) btn.addClass("emily-preset-active");
+			btn.addEventListener("click", () => {
+				this.sectionToggles[key] = !this.sectionToggles[key];
+				this.buildToolbar();
+				this.render();
+			});
+		}
 
 		// Mobile: preset dropdown (replaces buttons)
 		const mobilePresets = this.toolbarEl.createEl("div", {cls: "emily-preset-dropdown"});
@@ -248,7 +275,44 @@ export class TrackingView extends ItemView {
 			enabledTopics: this.enabledTopics,
 			theme,
 			onHover: (entry, x, y) => this.showTooltip(entry, x, y),
+			onClick: (entry) => this.openSource(entry),
 		});
+
+		const textHover = (text: string | null, x: number, y: number) => this.showTextTooltip(text, x, y);
+
+		if (this.sectionToggles.correlation) {
+			renderCorrelation(this.correlationEl, {
+				topics: displayTopics,
+				enabledTopics: this.enabledTopics,
+				theme,
+				onHover: textHover,
+			});
+		} else {
+			this.correlationEl.empty();
+		}
+
+		if (this.sectionToggles.heatmap) {
+			renderHeatmap(this.heatmapEl, {
+				topics: displayTopics,
+				enabledTopics: this.enabledTopics,
+				range: this.dateRange,
+				theme,
+				onHover: textHover,
+			});
+		} else {
+			this.heatmapEl.empty();
+		}
+
+		if (this.sectionToggles.timeOfDay) {
+			renderTimeOfDay(this.timeOfDayEl, {
+				topics: displayTopics,
+				enabledTopics: this.enabledTopics,
+				theme,
+				onHover: textHover,
+			});
+		} else {
+			this.timeOfDayEl.empty();
+		}
 
 		renderStats(this.statsEl, {
 			topics: displayTopics,
@@ -310,6 +374,61 @@ export class TrackingView extends ItemView {
 
 		this.tooltipEl.style.left = `${left}px`;
 		this.tooltipEl.style.top = `${top}px`;
+	}
+
+	private showTextTooltip(text: string | null, x: number, y: number): void {
+		if (!text) {
+			this.tooltipEl.style.display = "none";
+			return;
+		}
+
+		this.tooltipEl.empty();
+		this.tooltipEl.style.display = "block";
+
+		for (const line of text.split("\n")) {
+			this.tooltipEl.createEl("div", {text: line});
+		}
+
+		const viewRect = this.contentEl.getBoundingClientRect();
+		let left = x - viewRect.left + 10;
+		let top = y - viewRect.top - 10;
+
+		const tipWidth = 220;
+		if (left + tipWidth > viewRect.width) left = left - tipWidth - 20;
+		if (top < 0) top = 10;
+
+		this.tooltipEl.style.left = `${left}px`;
+		this.tooltipEl.style.top = `${top}px`;
+	}
+
+	private openSource(entry: TrackingEntry): void {
+		const file = this.app.vault.getAbstractFileByPath(entry.sourceFile);
+		if (file) {
+			this.app.workspace.getLeaf("tab").openFile(file as any);
+		}
+	}
+
+	public exportCsv(): void {
+		const displayTopics = this.getDisplayTopics();
+		const visible = displayTopics.filter(t => this.enabledTopics.has(t.name));
+		const allEntries = visible.flatMap(t =>
+			t.entries.map(e => ({...e, unit: t.config.unit}))
+		).sort((a, b) => a.timestamp - b.timestamp);
+
+		const header = "date,time,topic,value,unit,narration";
+		const rows = allEntries.map(e => {
+			const narration = e.narration.replace(/"/g, '""');
+			return `${e.date},${e.time},${e.topic},${e.value},${e.unit},"${narration}"`;
+		});
+		const csv = [header, ...rows].join("\n");
+
+		const blob = new Blob([csv], {type: "text/csv"});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `emily-${this.formatDateInput(this.dateRange.start)}-to-${this.formatDateInput(this.dateRange.end)}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
 	}
 
 	private setRange(days: number): void {

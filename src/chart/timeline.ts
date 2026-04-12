@@ -8,6 +8,7 @@ interface TimelineOptions {
 	enabledTopics: Set<string>;
 	theme: ChartTheme;
 	onHover: (entry: TrackingEntry | null, x: number, y: number) => void;
+	onClick: (entry: TrackingEntry) => void;
 }
 
 const MARGIN = {top: 20, right: 20, bottom: 40, left: 45};
@@ -47,7 +48,7 @@ function aggregateEntries(entries: TrackingEntry[], mode: "sum" | "average"): Tr
 }
 
 export function renderTimeline(container: HTMLElement, options: TimelineOptions): void {
-	const {topics, enabledTopics, theme, onHover} = options;
+	const {topics, enabledTopics, theme, onHover, onClick} = options;
 
 	container.empty();
 
@@ -271,5 +272,11 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 
 	overlay.on("mouseleave touchend", () => {
 		onHover(null, 0, 0);
+	});
+
+	overlay.on("click", function (event: MouseEvent) {
+		const [mx, my] = d3.pointer(event, this as SVGRectElement);
+		const entry = findNearest(mx, my);
+		if (entry) onClick(entry);
 	});
 }

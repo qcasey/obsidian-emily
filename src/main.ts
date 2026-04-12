@@ -24,6 +24,21 @@ export default class EmilyPlugin extends Plugin {
 			callback: () => this.activateView(),
 		});
 
+		this.addCommand({
+			id: "export-csv",
+			name: "Export current view as CSV",
+			checkCallback: (checking) => {
+				const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_EMILY);
+				if (leaves.length > 0) {
+					if (!checking) {
+						(leaves[0]?.view as TrackingView).exportCsv();
+					}
+					return true;
+				}
+				return false;
+			},
+		});
+
 		this.addSettingTab(new EmilySettingTab(this.app, this));
 
 		this.registerMarkdownCodeBlockProcessor("emily", (source, el, ctx) => {

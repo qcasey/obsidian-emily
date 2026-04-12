@@ -140,6 +140,7 @@ export async function renderEmbed(
 			enabledTopics,
 			theme,
 			onHover: showTooltip,
+			onClick: () => {},
 		});
 	}
 

@@ -60,6 +60,11 @@
 	font-size: 13px;
 }
 
+.emily-section-toggles {
+	display: flex;
+	gap: 4px;
+}
+
 /* Legend */
 .emily-legend {
 	display: flex;
@@ -168,6 +173,72 @@
 	margin-top: 4px;
 	font-style: italic;
 	color: var(--text-muted);
+}
+
+/* Section titles */
+.emily-section-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 8px;
+}
+
+/* Correlation */
+.emily-correlation {
+	margin-bottom: 20px;
+}
+
+.emily-correlation-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.emily-correlation-cell {
+	flex: 1 1 240px;
+	max-width: 320px;
+}
+
+.emily-correlation-cell svg {
+	display: block;
+}
+
+/* Heatmap */
+.emily-heatmap {
+	margin-bottom: 20px;
+}
+
+.emily-heatmap-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.emily-heatmap-cell {
+	flex: 0 0 auto;
+}
+
+.emily-heatmap-label {
+	font-size: 12px;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+/* Time of day */
+.emily-timeofday {
+	margin-bottom: 20px;
+	width: 100%;
+}
+
+.emily-timeofday svg {
+	display: block;
+}
+
+/* Export */
+.emily-export-btn {
+	font-weight: 600;
 }
 
 /* Stats */

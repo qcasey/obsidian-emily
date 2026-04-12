@@ -103,6 +103,7 @@ export class DataService {
 			subtleOpacity: 0.6,
 			group: "",
 			aggregate: "none",
+			heatmapGradient: true,
 		};
 
 		if (!file) return defaults;
@@ -126,6 +127,7 @@ export class DataService {
 			subtleOpacity: typeof fm["tracking_subtle_opacity"] === "number" ? fm["tracking_subtle_opacity"] : 0.6,
 			group: (fm["tracking_group"] as string) || "",
 			aggregate: (fm["tracking_aggregate"] === "sum" || fm["tracking_aggregate"] === "average") ? fm["tracking_aggregate"] : "none",
+			heatmapGradient: fm["tracking_heatmap_gradient"] !== false,
 		};
 	}
 

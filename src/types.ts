@@ -20,6 +20,7 @@ export interface TopicConfig {
 	subtleOpacity: number;
 	group: string;
 	aggregate: "none" | "sum" | "average";
+	heatmapGradient: boolean;
 }
 
 export interface ResolvedTopic {
