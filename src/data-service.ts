@@ -100,6 +100,7 @@ export class DataService {
 			max: null,
 			min: null,
 			subtle: false,
+			subtleOpacity: 0.6,
 			group: "",
 			aggregate: "none",
 		};
@@ -122,6 +123,7 @@ export class DataService {
 			max: typeof maxVal === "number" ? maxVal : null,
 			min: typeof minVal === "number" ? minVal : null,
 			subtle: fm["tracking_subtle"] === true,
+			subtleOpacity: typeof fm["tracking_subtle_opacity"] === "number" ? fm["tracking_subtle_opacity"] : 0.6,
 			group: (fm["tracking_group"] as string) || "",
 			aggregate: (fm["tracking_aggregate"] === "sum" || fm["tracking_aggregate"] === "average") ? fm["tracking_aggregate"] : "none",
 		};

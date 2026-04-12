@@ -143,6 +143,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 		const color = topic.config.color;
 		const sorted = [...topic.entries].sort((a, b) => a.timestamp - b.timestamp);
 		const subtle = topic.config.subtle;
+		const sOp = topic.config.subtleOpacity;
 
 		const topicName = topic.name;
 
@@ -163,7 +164,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("fill", "none")
 				.attr("stroke", color)
 				.attr("stroke-width", subtle ? 1 : 2)
-				.attr("opacity", subtle ? 0.6 : 1)
+				.attr("opacity", subtle ? sOp : 1)
 				.attr("d", line);
 
 			// Points
@@ -176,7 +177,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("fill", color)
 				.attr("stroke", theme.background)
 				.attr("stroke-width", subtle ? 0.5 : 1.5)
-				.attr("opacity", subtle ? 0.6 : 1)
+				.attr("opacity", subtle ? sOp : 1)
 				.attr("class", "emily-data-point")
 				.style("cursor", "pointer");
 		} else if (effectiveType === "spike_full") {
@@ -190,7 +191,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("y2", innerHeight)
 				.attr("stroke", color)
 				.attr("stroke-width", subtle ? 1 : 2)
-				.attr("opacity", subtle ? 0.4 : 0.5);
+				.attr("opacity", subtle ? sOp * 0.7 : 0.5);
 
 			// Dot at normalized value
 			g.selectAll(null)
@@ -200,7 +201,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("cy", d => yScale(normalize(topicName, d.value)))
 				.attr("r", subtle ? 4 : 6)
 				.attr("fill", color)
-				.attr("opacity", subtle ? 0.6 : 1)
+				.attr("opacity", subtle ? sOp : 1)
 				.attr("class", "emily-data-point")
 				.style("cursor", "pointer");
 		} else {
@@ -215,7 +216,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("stroke", color)
 				.attr("stroke-width", subtle ? 1.5 : 3)
 				.attr("stroke-linecap", "round")
-				.attr("opacity", subtle ? 0.6 : 0.8);
+				.attr("opacity", subtle ? sOp : 0.8);
 
 			// Spike tops
 			g.selectAll(null)
@@ -225,7 +226,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("cy", d => yScale(normalize(topicName, d.value)))
 				.attr("r", subtle ? 2.5 : 4)
 				.attr("fill", color)
-				.attr("opacity", subtle ? 0.6 : 1)
+				.attr("opacity", subtle ? sOp : 1)
 				.attr("class", "emily-data-point")
 				.style("cursor", "pointer");
 		}

@@ -17,6 +17,7 @@ export interface TopicConfig {
 	max: number | null;
 	min: number | null;
 	subtle: boolean;
+	subtleOpacity: number;
 	group: string;
 	aggregate: "none" | "sum" | "average";
 }
