@@ -1,21 +1,17 @@
-import * as d3 from "d3";
 import type {DateRange, ResolvedTopic} from "../types";
-import type {ChartTheme} from "./theme";
 
 interface HeatmapOptions {
 	topics: ResolvedTopic[];
 	enabledTopics: Set<string>;
 	range: DateRange;
-	theme: ChartTheme;
 	onHover: (text: string | null, x: number, y: number, date?: string) => void;
 }
 
-const CELL_SIZE = 14;
-const CELL_GAP = 2;
-const CELL_STEP = CELL_SIZE + CELL_GAP;
+const CELL_SIZE = 18;
+const CELL_GAP = 3;
 
 export function renderHeatmap(container: HTMLElement, options: HeatmapOptions): void {
-	const {topics, enabledTopics, range, theme, onHover} = options;
+	const {topics, enabledTopics, range, onHover} = options;
 	container.empty();
 
 	const visible = topics.filter(t => enabledTopics.has(t.name));
@@ -30,7 +26,7 @@ export function renderHeatmap(container: HTMLElement, options: HeatmapOptions): 
 
 	for (const topic of visible) {
 		const cell = grid.createEl("div", {cls: "emily-heatmap-cell"});
-		renderTopicHeatmap(cell, topic, range, theme, onHover);
+		renderTopicHeatmap(cell, topic, range, onHover);
 	}
 }
 
@@ -38,7 +34,6 @@ function renderTopicHeatmap(
 	container: HTMLElement,
 	topic: ResolvedTopic,
 	range: DateRange,
-	theme: ChartTheme,
 	onHover: (text: string | null, x: number, y: number, date?: string) => void,
 ): void {
 	// Build daily values — collect per-date then aggregate
@@ -59,7 +54,7 @@ function renderTopicHeatmap(
 	}
 
 	const values = [...dailyValues.values()];
-	const maxVal = d3.max(values) ?? 1;
+	const maxVal = values.reduce((a, b) => Math.max(a, b), 1);
 	const useGradient = topic.config.heatmapGradient;
 
 	// Generate all dates in range
@@ -73,78 +68,58 @@ function renderTopicHeatmap(
 		d.setDate(d.getDate() + 1);
 	}
 
-	// Layout: 7 rows (day of week), columns are weeks
-	// First date goes at its actual day-of-week position
 	const firstDayOfWeek = dates[0]?.dayOfWeek ?? 0;
-	const totalCols = Math.ceil((dates.length + firstDayOfWeek) / 7);
-	const labelWidth = 16;
-	const width = totalCols * CELL_STEP + labelWidth + 4;
-	const height = 7 * CELL_STEP;
 
+	// Topic label
 	container.createEl("div", {
 		cls: "emily-heatmap-label",
 		text: topic.name,
 	}).style.color = topic.config.color;
 
-	const svg = d3.select(container)
-		.append("svg")
-		.attr("width", "100%")
-		.attr("height", height)
-		.attr("viewBox", `0 0 ${width} ${height}`);
+	// Wrapper: day-of-week labels + grid side by side
+	const wrapper = container.createEl("div", {cls: "emily-heatmap-wrapper"});
 
-	const colorScale = d3.scaleSequential()
-		.domain([0, maxVal])
-		.interpolator(d3.interpolateRgb(theme.gridLine, topic.config.color));
-
-	const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
-	for (let i = 0; i < 7; i++) {
-		svg.append("text")
-			.attr("x", 0)
-			.attr("y", i * CELL_STEP + CELL_SIZE - 2)
-			.attr("fill", theme.textMuted)
-			.attr("font-size", "9px")
-			.text(dayLabels[i] as string);
+	// Day-of-week labels column
+	const labelsCol = wrapper.createEl("div", {cls: "emily-heatmap-day-labels"});
+	for (const label of ["S", "M", "T", "W", "T", "F", "S"]) {
+		labelsCol.createEl("div", {cls: "emily-heatmap-day-label", text: label});
 	}
 
-	for (let i = 0; i < dates.length; i++) {
-		const dateInfo = dates[i] as {str: string; dayOfWeek: number};
-		const col = Math.floor((i + firstDayOfWeek) / 7);
-		const row = dateInfo.dayOfWeek;
+	// CSS Grid for day cells
+	const gridEl = wrapper.createEl("div", {cls: "emily-heatmap-days"});
+	gridEl.style.gridTemplateRows = `repeat(7, ${CELL_SIZE}px)`;
+	gridEl.style.gridAutoColumns = `${CELL_SIZE}px`;
+	gridEl.style.gap = `${CELL_GAP}px`;
+
+	// Placeholder cells for first-week offset
+	for (let i = 0; i < firstDayOfWeek; i++) {
+		gridEl.createEl("div", {cls: "emily-heatmap-day emily-heatmap-day--empty"});
+	}
+
+	// Render each date cell
+	for (const dateInfo of dates) {
 		const val = dailyValues.get(dateInfo.str);
 		const hasData = val !== undefined;
-
-		let fill: string;
-		let opacity: number;
+		const dayEl = gridEl.createEl("div", {cls: "emily-heatmap-day"});
 
 		if (!hasData) {
-			fill = theme.gridLine;
-			opacity = 0.15;
+			dayEl.addClass("emily-heatmap-day--no-data");
 		} else if (useGradient) {
-			// Color gradient from grid to topic color
-			fill = colorScale(val);
-			opacity = Math.max(0.3, val / maxVal);
+			dayEl.style.backgroundColor = topic.config.color;
+			dayEl.style.opacity = String(Math.max(0.25, val / maxVal));
 		} else {
-			// Solid topic color, opacity = presence (on/off)
-			fill = topic.config.color;
-			opacity = 1;
+			dayEl.style.backgroundColor = topic.config.color;
 		}
 
-		const r = svg.append("rect")
-			.attr("x", labelWidth + col * CELL_STEP)
-			.attr("y", row * CELL_STEP)
-			.attr("width", CELL_SIZE)
-			.attr("height", CELL_SIZE)
-			.attr("rx", 2)
-			.attr("fill", fill)
-			.attr("opacity", opacity)
-			.style("cursor", hasData ? "pointer" : "default");
+		if (hasData) dayEl.style.cursor = "pointer";
 
 		const label = hasData
 			? `${topic.name}: ${Math.round(val * 10) / 10}`
 			: `no data`;
-		r.on("mouseover", function (event: MouseEvent) {
-			const rect = (event.target as SVGElement).getBoundingClientRect();
+		dayEl.addEventListener("mouseenter", (event: MouseEvent) => {
+			const rect = (event.target as HTMLElement).getBoundingClientRect();
 			onHover(label, rect.left + rect.width / 2, rect.top, dateInfo.str);
-		}).on("mouseout", () => onHover(null, 0, 0));
+		});
+		dayEl.addEventListener("mouseleave", () => onHover(null, 0, 0));
 	}
 }

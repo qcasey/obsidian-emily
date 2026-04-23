@@ -31,6 +31,7 @@ export class TrackingView extends ItemView {
 	private statsEl: HTMLElement;
 	private legendEl: HTMLElement;
 	private tooltipEl: HTMLElement;
+	private tooltipHideTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: EmilyPlugin) {
 		super(leaf);
@@ -84,6 +85,15 @@ export class TrackingView extends ItemView {
 		// Tooltip (absolute positioned)
 		this.tooltipEl = contentEl.createEl("div", {cls: "emily-tooltip"});
 		this.tooltipEl.style.display = "none";
+		this.tooltipEl.addEventListener("mouseenter", () => {
+			if (this.tooltipHideTimeout) {
+				clearTimeout(this.tooltipHideTimeout);
+				this.tooltipHideTimeout = null;
+			}
+		});
+		this.tooltipEl.addEventListener("mouseleave", () => {
+			this.scheduleHideTooltip();
+		});
 
 		// Responsive resize
 		this.resizeObserver = new ResizeObserver(
@@ -296,7 +306,6 @@ export class TrackingView extends ItemView {
 				topics: displayTopics,
 				enabledTopics: this.enabledTopics,
 				range: this.dateRange,
-				theme,
 				onHover: textHover,
 			});
 		} else {
@@ -330,12 +339,28 @@ export class TrackingView extends ItemView {
 		});
 	}
 
+	private scheduleHideTooltip(): void {
+		if (this.tooltipHideTimeout) clearTimeout(this.tooltipHideTimeout);
+		this.tooltipHideTimeout = setTimeout(() => {
+			this.tooltipEl.style.display = "none";
+			this.tooltipHideTimeout = null;
+		}, 150);
+	}
+
+	private cancelHideTooltip(): void {
+		if (this.tooltipHideTimeout) {
+			clearTimeout(this.tooltipHideTimeout);
+			this.tooltipHideTimeout = null;
+		}
+	}
+
 	private showTooltip(entry: TrackingEntry | null, x: number, y: number): void {
 		if (!entry) {
-			this.tooltipEl.style.display = "none";
+			this.scheduleHideTooltip();
 			return;
 		}
 
+		this.cancelHideTooltip();
 		const topic = this.getDisplayTopics().find(t => t.name === entry.topic);
 		const color = topic?.config.color ?? "#888";
 
@@ -367,10 +392,11 @@ export class TrackingView extends ItemView {
 
 	private showTextTooltip(text: string | null, x: number, y: number, date?: string): void {
 		if (!text) {
-			this.tooltipEl.style.display = "none";
+			this.scheduleHideTooltip();
 			return;
 		}
 
+		this.cancelHideTooltip();
 		this.tooltipEl.empty();
 		this.tooltipEl.style.display = "block";
 
