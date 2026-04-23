@@ -45,6 +45,7 @@ export interface EmilySettings {
 	autoEmbed: boolean;
 	autoEmbedTopics: string;
 	narrationInheritMinutes: number;
+	frequencySuggestEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -55,6 +56,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	autoEmbed: true,
 	autoEmbedTopics: "",
 	narrationInheritMinutes: 0,
+	frequencySuggestEnabled: true,
 };
 
 export function hashTopicColor(name: string): string {

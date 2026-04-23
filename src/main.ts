@@ -1,10 +1,11 @@
-import {MarkdownView, Plugin, WorkspaceLeaf, debounce} from "obsidian";
+import {Editor, MarkdownView, Plugin, WorkspaceLeaf, debounce} from "obsidian";
 import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
 import {EmilySettingTab} from "./settings";
 import {TrackingView, VIEW_TYPE_EMILY} from "./view";
 import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
+import {FrequencyLinkSort} from "./suggest";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
@@ -25,6 +26,36 @@ export default class EmilyPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "insert-timestamp-link",
+			name: "Insert timestamp and link",
+			icon: "clock",
+			editorCallback: (editor: Editor) => {
+				const cursor = editor.getCursor();
+				const currentLine = editor.getLine(cursor.line);
+				const prevLine = cursor.line > 0 ? editor.getLine(cursor.line - 1) : "";
+
+				let prefix = "";
+				if (currentLine.trim() !== "") {
+					prefix = "\n\n";
+				} else if (prevLine.trim() !== "") {
+					prefix = "\n";
+				}
+
+				const now = new Date();
+				const hh = String(now.getHours()).padStart(2, "0");
+				const mm = String(now.getMinutes()).padStart(2, "0");
+				const text = `${prefix}${hh}:${mm} [[`;
+
+				editor.replaceRange(text, cursor);
+				const insertedLines = text.split("\n");
+				const lastLine = insertedLines[insertedLines.length - 1] as string;
+				const newLine = cursor.line + insertedLines.length - 1;
+				const newCh = (insertedLines.length === 1 ? cursor.ch : 0) + lastLine.length;
+				editor.setCursor({line: newLine, ch: newCh});
+			},
+		});
+
+		this.addCommand({
 			id: "export-csv",
 			name: "Export current view as CSV",
 			checkCallback: (checking) => {
@@ -40,6 +71,17 @@ export default class EmilyPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new EmilySettingTab(this.app, this));
+
+		const freqSort = new FrequencyLinkSort(this.app, this);
+		// Patch after layout is ready so the native suggest is registered
+		this.app.workspace.onLayoutReady(() => {
+			freqSort.patchNativeSuggest();
+		});
+		this.registerEvent(
+			this.app.metadataCache.on("resolved", () => {
+				freqSort.rebuildFrequencyCache();
+			})
+		);
 
 		this.registerMarkdownCodeBlockProcessor("emily", (source, el, ctx) => {
 			renderEmbed(source, el, this.app, this.settings);

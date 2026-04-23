@@ -80,6 +80,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Frequency-sorted link suggest")
+			.setDesc("Show link suggestions sorted by usage frequency after inserting a timestamp")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.frequencySuggestEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.frequencySuggestEnabled = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text
