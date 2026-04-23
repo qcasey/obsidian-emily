@@ -127,6 +127,7 @@ export async function renderEmbed(
 		const legendEl = container.createEl("div", {cls: "emily-legend"});
 		for (const topic of topics) {
 			const item = legendEl.createEl("span", {cls: "emily-legend-item"});
+			item.style.setProperty("--emily-topic-color", topic.config.color);
 			const dot = item.createEl("span", {cls: "emily-legend-dot"});
 			dot.style.backgroundColor = topic.config.color;
 			item.createEl("span", {text: topic.name});

@@ -74,13 +74,13 @@ export class TrackingView extends ItemView {
 		// Chart
 		this.chartEl = contentEl.createEl("div", {cls: "emily-chart"});
 
+		// Stats
+		this.statsEl = contentEl.createEl("div", {cls: "emily-stats"});
+
 		// Additional visualizations
 		this.correlationEl = contentEl.createEl("div", {cls: "emily-correlation"});
 		this.heatmapEl = contentEl.createEl("div", {cls: "emily-heatmap"});
 		this.timeOfDayEl = contentEl.createEl("div", {cls: "emily-timeofday"});
-
-		// Stats
-		this.statsEl = contentEl.createEl("div", {cls: "emily-stats"});
 
 		// Tooltip (absolute positioned)
 		this.tooltipEl = contentEl.createEl("div", {cls: "emily-tooltip"});
@@ -222,6 +222,7 @@ export class TrackingView extends ItemView {
 
 		for (const topic of this.topics) {
 			const item = this.legendEl.createEl("button", {cls: "emily-legend-item"});
+			item.style.setProperty("--emily-topic-color", topic.config.color);
 			if (!this.enabledTopics.has(topic.name)) {
 				item.addClass("emily-legend-disabled");
 			}
@@ -249,10 +250,19 @@ export class TrackingView extends ItemView {
 		this.topics = await this.dataService.loadData(this.dateRange);
 
 		if (!this.hasInitialized) {
-			// First load: only enable topics with tracking_visible_default: true
-			this.enabledTopics = new Set(
-				this.topics.filter(t => t.config.visibleDefault).map(t => t.name)
-			);
+			// First load: enable topics with tracking_visible_default: true,
+			// falling back to the default enabled group if none are marked visible
+			const visibleDefaults = this.topics.filter(t => t.config.visibleDefault);
+			if (visibleDefaults.length > 0) {
+				this.enabledTopics = new Set(visibleDefaults.map(t => t.name));
+			} else {
+				const group = this.plugin.settings.defaultEnabledGroup;
+				if (group) {
+					this.enabledTopics = new Set(
+						this.topics.filter(t => t.config.group.toLowerCase() === group.toLowerCase()).map(t => t.name)
+					);
+				}
+			}
 			this.hasInitialized = true;
 		}
 

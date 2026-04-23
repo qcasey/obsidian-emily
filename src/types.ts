@@ -46,6 +46,7 @@ export interface EmilySettings {
 	autoEmbedTopics: string;
 	narrationInheritMinutes: number;
 	frequencySuggestEnabled: boolean;
+	defaultEnabledGroup: string;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	autoEmbedTopics: "",
 	narrationInheritMinutes: 0,
 	frequencySuggestEnabled: true,
+	defaultEnabledGroup: "mood",
 };
 
 export function hashTopicColor(name: string): string {

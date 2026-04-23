@@ -90,6 +90,17 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Default enabled group")
+			.setDesc("Group to enable on first load when no topics have tracking_visible_default set")
+			.addText(text => text
+				.setPlaceholder("mood")
+				.setValue(this.plugin.settings.defaultEnabledGroup)
+				.onChange(async (value) => {
+					this.plugin.settings.defaultEnabledGroup = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text

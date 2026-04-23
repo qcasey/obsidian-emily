@@ -1,5 +1,5 @@
 .emily-view {
-	padding: 16px;
+	padding: 16px 32px;
 	overflow-y: auto;
 	position: relative;
 }
@@ -79,17 +79,18 @@
 	gap: 5px;
 	padding: 3px 10px;
 	border-radius: 14px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
+	border: 1px solid color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-border)) 30%, var(--background-modifier-border));
+	background: color-mix(in srgb, var(--emily-topic-color, transparent) 8%, var(--background-secondary));
 	color: var(--text-normal);
 	cursor: pointer;
 	font-size: 12px;
 	min-height: 28px;
-	transition: opacity 0.15s;
+	transition: opacity 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .emily-legend-item:hover {
-	background: var(--background-modifier-hover);
+	background: color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-hover)) 15%, var(--background-secondary));
+	border-color: color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-border)) 50%, var(--background-modifier-border));
 }
 
 .emily-legend-disabled {
@@ -187,17 +188,18 @@
 
 /* Section titles */
 .emily-section-title {
-	font-size: 13px;
+	font-size: 15px;
 	font-weight: 600;
-	color: var(--text-muted);
+	color: var(--text-normal);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	margin-bottom: 8px;
+	margin-bottom: 10px;
 }
 
 /* Correlation */
 .emily-correlation {
-	margin-bottom: 20px;
+	margin-top: 40px;
+	margin-bottom: 40px;
 }
 
 .emily-correlation-grid {
@@ -226,7 +228,6 @@
 .emily-correlation-label {
 	font-size: 10px;
 	color: var(--text-muted);
-	opacity: 0.7;
 	margin-top: 4px;
 	line-height: 1.4;
 	text-align: center;
@@ -239,7 +240,8 @@
 
 /* Heatmap */
 .emily-heatmap {
-	margin-bottom: 20px;
+	margin-top: 40px;
+	margin-bottom: 40px;
 }
 
 .emily-heatmap-grid {
@@ -305,7 +307,8 @@
 
 /* Time of day */
 .emily-timeofday {
-	margin-bottom: 20px;
+	margin-top: 40px;
+	margin-bottom: 40px;
 	width: 100%;
 }
 
