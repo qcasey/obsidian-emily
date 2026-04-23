@@ -39,6 +39,10 @@ export function renderCorrelation(container: HTMLElement, options: CorrelationOp
 	if (corrTopics.length < 2) return;
 
 	const title = container.createEl("div", {cls: "emily-section-title", text: "Correlations"});
+	container.createEl("div", {
+		cls: "emily-correlation-desc",
+		text: "Each chart shows how two topics move together day-by-day. Dots closer to the trend line mean a stronger relationship. A positive slope means both rise together; a negative slope means one falls as the other rises.",
+	});
 
 	const grid = container.createEl("div", {cls: "emily-correlation-grid"});
 
@@ -63,8 +67,57 @@ export function renderCorrelation(container: HTMLElement, options: CorrelationOp
 
 			const cell = grid.createEl("div", {cls: "emily-correlation-cell"});
 			renderScatter(cell, tA, tB, points, theme, onHover);
+
+			// Pearson r + interpretation
+			const r = pearsonR(points);
+			const {strength, detail} = interpretR(r, tA.name, tB.name);
+			const label = cell.createEl("div", {cls: "emily-correlation-label"});
+			const top = label.createEl("div");
+			top.createEl("span", {cls: "emily-correlation-r", text: `r = ${r.toFixed(2)}`});
+			top.createEl("span", {text: ` · ${strength}`});
+			label.createEl("div", {text: detail});
 		}
 	}
+}
+
+function pearsonR(points: {x: number; y: number}[]): number {
+	const n = points.length;
+	if (n < 2) return 0;
+	const xMean = d3.mean(points, d => d.x) ?? 0;
+	const yMean = d3.mean(points, d => d.y) ?? 0;
+	let num = 0, denX = 0, denY = 0;
+	for (const p of points) {
+		const dx = p.x - xMean;
+		const dy = p.y - yMean;
+		num += dx * dy;
+		denX += dx * dx;
+		denY += dy * dy;
+	}
+	const den = Math.sqrt(denX * denY);
+	return den === 0 ? 0 : num / den;
+}
+
+function interpretR(r: number, nameX: string, nameY: string): {strength: string; detail: string} {
+	const abs = Math.abs(r);
+	if (abs < 0.2) return {strength: "Very weak", detail: `${nameX} and ${nameY} don't clearly move together.`};
+	if (abs < 0.4) {
+		return r >= 0
+			? {strength: "Weak positive", detail: `${nameX} and ${nameY} slightly tend to rise together.`}
+			: {strength: "Weak negative", detail: `When ${nameX} goes up, ${nameY} slightly tends to go down.`};
+	}
+	if (abs < 0.6) {
+		return r >= 0
+			? {strength: "Moderate positive", detail: `${nameX} and ${nameY} somewhat rise and fall together.`}
+			: {strength: "Moderate negative", detail: `${nameX} tends to fall when ${nameY} rises.`};
+	}
+	if (abs < 0.8) {
+		return r >= 0
+			? {strength: "Strong positive", detail: `${nameX} and ${nameY} clearly rise and fall together.`}
+			: {strength: "Strong negative", detail: `${nameX} clearly falls when ${nameY} rises.`};
+	}
+	return r >= 0
+		? {strength: "Very strong positive", detail: `${nameX} and ${nameY} move almost in lockstep.`}
+		: {strength: "Very strong negative", detail: `${nameX} and ${nameY} move almost perfectly opposite.`};
 }
 
 function renderScatter(
@@ -120,6 +173,7 @@ function renderScatter(
 		.attr("text-anchor", "middle")
 		.attr("fill", topicX.config.color)
 		.attr("font-size", "11px")
+		.attr("font-weight", "bold")
 		.text(topicX.name);
 
 	svg.append("text")
@@ -129,6 +183,7 @@ function renderScatter(
 		.attr("text-anchor", "middle")
 		.attr("fill", topicY.config.color)
 		.attr("font-size", "11px")
+		.attr("font-weight", "bold")
 		.text(topicY.name);
 
 	// Trend line

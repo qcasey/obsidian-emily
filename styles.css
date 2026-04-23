@@ -205,6 +205,28 @@
 	display: block;
 }
 
+.emily-correlation-desc {
+	font-size: 12px;
+	color: var(--text-muted);
+	opacity: 0.7;
+	margin-bottom: 10px;
+	line-height: 1.4;
+}
+
+.emily-correlation-label {
+	font-size: 10px;
+	color: var(--text-muted);
+	opacity: 0.7;
+	margin-top: 4px;
+	line-height: 1.4;
+	text-align: center;
+}
+
+.emily-correlation-r {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
 /* Heatmap */
 .emily-heatmap {
 	margin-bottom: 20px;
