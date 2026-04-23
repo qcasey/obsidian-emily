@@ -278,7 +278,7 @@ export class TrackingView extends ItemView {
 			onClick: (entry) => this.openSource(entry),
 		});
 
-		const textHover = (text: string | null, x: number, y: number) => this.showTextTooltip(text, x, y);
+		const textHover = (text: string | null, x: number, y: number, date?: string) => this.showTextTooltip(text, x, y, date);
 
 		if (this.sectionToggles.correlation) {
 			renderCorrelation(this.correlationEl, {
@@ -346,7 +346,8 @@ export class TrackingView extends ItemView {
 		const dot = header.createEl("span", {cls: "emily-tooltip-dot"});
 		dot.style.backgroundColor = color;
 		const unit = topic?.config.unit ? ` ${topic.config.unit}` : "";
-		header.createEl("strong", {text: `${entry.topic}: ${entry.value}${unit}`});
+		const displayVal = Number.isInteger(entry.value) ? entry.value : Math.round(entry.value * 10) / 10;
+	header.createEl("strong", {text: `${entry.topic}: ${displayVal}${unit}`});
 
 		this.tooltipEl.createEl("div", {
 			cls: "emily-tooltip-time",
@@ -361,22 +362,10 @@ export class TrackingView extends ItemView {
 		}
 
 		// Position relative to the view container
-		const viewRect = this.contentEl.getBoundingClientRect();
-		let left = x - viewRect.left + 10;
-		let top = y - viewRect.top - 10;
-
-		// Keep tooltip in bounds
-		const tipWidth = 220;
-		if (left + tipWidth > viewRect.width) {
-			left = left - tipWidth - 20;
-		}
-		if (top < 0) top = 10;
-
-		this.tooltipEl.style.left = `${left}px`;
-		this.tooltipEl.style.top = `${top}px`;
+		this.positionTooltip(x, y);
 	}
 
-	private showTextTooltip(text: string | null, x: number, y: number): void {
+	private showTextTooltip(text: string | null, x: number, y: number, date?: string): void {
 		if (!text) {
 			this.tooltipEl.style.display = "none";
 			return;
@@ -389,10 +378,34 @@ export class TrackingView extends ItemView {
 			this.tooltipEl.createEl("div", {text: line});
 		}
 
+		if (date) {
+			const dateLink = this.tooltipEl.createEl("a", {cls: "emily-tooltip-date-link", text: date});
+			dateLink.addEventListener("click", (e) => {
+				e.preventDefault();
+				this.openDate(date);
+			});
+		}
+
+		this.positionTooltip(x, y);
+	}
+
+	private openDate(date: string): void {
+		const topics = this.getDisplayTopics();
+		for (const t of topics) {
+			const entry = t.entries.find(e => e.date === date);
+			if (entry) {
+				this.openSource(entry);
+				return;
+			}
+		}
+	}
+
+	private positionTooltip(x: number, y: number): void {
 		const viewRect = this.contentEl.getBoundingClientRect();
 		let left = x - viewRect.left + 10;
-		let top = y - viewRect.top - 10;
+		let top = y - viewRect.top + this.contentEl.scrollTop - 10;
 
+		// Keep tooltip in bounds
 		const tipWidth = 220;
 		if (left + tipWidth > viewRect.width) left = left - tipWidth - 20;
 		if (top < 0) top = 10;

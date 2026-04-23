@@ -7,7 +7,7 @@ interface HeatmapOptions {
 	enabledTopics: Set<string>;
 	range: DateRange;
 	theme: ChartTheme;
-	onHover: (text: string | null, x: number, y: number) => void;
+	onHover: (text: string | null, x: number, y: number, date?: string) => void;
 }
 
 const CELL_SIZE = 14;
@@ -39,7 +39,7 @@ function renderTopicHeatmap(
 	topic: ResolvedTopic,
 	range: DateRange,
 	theme: ChartTheme,
-	onHover: (text: string | null, x: number, y: number) => void,
+	onHover: (text: string | null, x: number, y: number, date?: string) => void,
 ): void {
 	// Build daily values — collect per-date then aggregate
 	const dateEntries = new Map<string, number[]>();
@@ -140,11 +140,11 @@ function renderTopicHeatmap(
 			.style("cursor", hasData ? "pointer" : "default");
 
 		const label = hasData
-			? `${topic.name}: ${Math.round(val * 10) / 10}\n${dateInfo.str}`
-			: `${dateInfo.str}: no data`;
+			? `${topic.name}: ${Math.round(val * 10) / 10}`
+			: `no data`;
 		r.on("mouseover", function (event: MouseEvent) {
 			const rect = (event.target as SVGElement).getBoundingClientRect();
-			onHover(label, rect.left + rect.width / 2, rect.top);
+			onHover(label, rect.left + rect.width / 2, rect.top, dateInfo.str);
 		}).on("mouseout", () => onHover(null, 0, 0));
 	}
 }

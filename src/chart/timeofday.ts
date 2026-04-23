@@ -6,7 +6,7 @@ interface TimeOfDayOptions {
 	topics: ResolvedTopic[];
 	enabledTopics: Set<string>;
 	theme: ChartTheme;
-	onHover: (text: string | null, x: number, y: number) => void;
+	onHover: (text: string | null, x: number, y: number, date?: string) => void;
 }
 
 const MARGIN = {top: 20, right: 20, bottom: 35, left: 45};

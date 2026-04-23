@@ -6,7 +6,7 @@ export interface CorrelationOptions {
 	topics: ResolvedTopic[];
 	enabledTopics: Set<string>;
 	theme: ChartTheme;
-	onHover: (text: string | null, x: number, y: number) => void;
+	onHover: (text: string | null, x: number, y: number, date?: string) => void;
 }
 
 const MARGIN = {top: 30, right: 20, bottom: 45, left: 50};
@@ -126,7 +126,7 @@ function renderScatter(
 	topicY: ResolvedTopic,
 	points: {x: number; y: number; date: string}[],
 	theme: ChartTheme,
-	onHover: (text: string | null, x: number, y: number) => void,
+	onHover: (text: string | null, x: number, y: number, date?: string) => void,
 ): void {
 	const width = 260;
 	const height = 220;
@@ -225,7 +225,9 @@ function renderScatter(
 		.on("mouseover", function (event: MouseEvent, d) {
 			d3.select(this).attr("r", 6);
 			const r = (event.target as SVGElement).getBoundingClientRect();
-			onHover(`${d.date}\n${topicX.name}: ${d.x}\n${topicY.name}: ${d.y}`, r.left + r.width / 2, r.top);
+			const rx = Math.round(d.x * 10) / 10;
+			const ry = Math.round(d.y * 10) / 10;
+			onHover(`${topicX.name}: ${rx}\n${topicY.name}: ${ry}`, r.left + r.width / 2, r.top, d.date);
 		})
 		.on("mouseout", function () {
 			d3.select(this).attr("r", 4);

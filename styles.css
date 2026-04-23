@@ -169,6 +169,16 @@
 	font-size: 12px;
 }
 
+.emily-tooltip-date-link {
+	color: var(--text-muted);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.emily-tooltip-date-link:hover {
+	color: var(--text-normal);
+}
+
 .emily-tooltip-narration {
 	margin-top: 4px;
 	font-style: italic;
