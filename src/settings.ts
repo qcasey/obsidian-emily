@@ -78,5 +78,17 @@ export class EmilySettingTab extends PluginSettingTab {
 					this.plugin.settings.autoEmbedTopics = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Narration inherit window")
+			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
+			.addText(text => text
+				.setPlaceholder("0")
+				.setValue(String(this.plugin.settings.narrationInheritMinutes))
+				.onChange(async (value) => {
+					const num = parseInt(value, 10);
+					this.plugin.settings.narrationInheritMinutes = isNaN(num) ? 0 : Math.max(0, num);
+					await this.plugin.saveSettings();
+				}));
 	}
 }

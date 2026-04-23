@@ -24,7 +24,36 @@ export class DataService {
 	async loadData(range: DateRange): Promise<ResolvedTopic[]> {
 		const entries = await this.collectEntries(range);
 		const allTimeEntries = await this.collectEntries(null);
+		this.inheritNarration(entries);
+		this.inheritNarration(allTimeEntries);
 		return this.resolveTopics(entries, allTimeEntries);
+	}
+
+	private inheritNarration(entries: TrackingEntry[]): void {
+		const minutes = this.settings.narrationInheritMinutes;
+		if (minutes <= 0) return;
+
+		const windowMs = minutes * 60_000;
+
+		for (const entry of entries) {
+			if (entry.narration) continue;
+
+			let bestNarration = "";
+			let bestDist = Infinity;
+
+			for (const other of entries) {
+				if (!other.narration) continue;
+				const dist = Math.abs(entry.timestamp - other.timestamp);
+				if (dist <= windowMs && dist < bestDist) {
+					bestDist = dist;
+					bestNarration = other.narration;
+				}
+			}
+
+			if (bestNarration) {
+				entry.narration = bestNarration;
+			}
+		}
 	}
 
 	private async collectEntries(range: DateRange | null): Promise<TrackingEntry[]> {

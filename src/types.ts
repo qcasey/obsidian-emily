@@ -44,6 +44,7 @@ export interface EmilySettings {
 	logSectionHeading: string;
 	autoEmbed: boolean;
 	autoEmbedTopics: string;
+	narrationInheritMinutes: number;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -53,6 +54,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	logSectionHeading: "Log",
 	autoEmbed: true,
 	autoEmbedTopics: "",
+	narrationInheritMinutes: 0,
 };
 
 export function hashTopicColor(name: string): string {
