@@ -74,7 +74,7 @@ export class FeelingsOverlay {
 			if (this.pendingEmotions.length > 0) {
 				this.onDone(this.pendingEmotions);
 			}
-			this.remove();
+			this.animateOut();
 		});
 		this.sidebar.appendChild(this.doneBtn);
 
@@ -179,9 +179,12 @@ export class FeelingsOverlay {
 
 	private close(): void {
 		this.onCancel();
+		this.animateOut();
+	}
+
+	private animateOut(): void {
 		this.sidebar.classList.remove("emily-feelings-open");
 		this.backdrop.classList.remove("emily-feelings-visible");
-
 		setTimeout(() => this.remove(), 300);
 	}
 
