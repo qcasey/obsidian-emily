@@ -10,10 +10,8 @@ export class FeelingsOverlay {
 	private pendingEmotions: string[] = [];
 	private emotionColors: Map<string, string> = new Map();
 	private pendingListEl: HTMLElement;
-	private pointedLabelEl: HTMLElement;
 	private doneBtn: HTMLElement;
 	private sidebar: HTMLElement;
-	private pointedUpdateId: number | null = null;
 
 	constructor(
 		private editor: Editor,
@@ -22,7 +20,7 @@ export class FeelingsOverlay {
 		private zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
 		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.90},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95},
 	) {
 		// Build color lookup
 		const segments = buildFlatSegments();
@@ -34,7 +32,9 @@ export class FeelingsOverlay {
 		this.backdrop = document.createElement("div");
 		this.backdrop.className = "emily-feelings-backdrop";
 		this.backdrop.addEventListener("pointerdown", (e) => {
-			if (e.target === this.backdrop) {
+			const target = e.target as HTMLElement;
+			// Close when tapping the backdrop or non-interactive overlays (indicator, close btn area)
+			if (target === this.backdrop || target === this.indicator) {
 				e.preventDefault();
 				this.close();
 			}
@@ -62,19 +62,6 @@ export class FeelingsOverlay {
 		this.pendingListEl.className = "emily-feelings-pending";
 		this.sidebar.appendChild(this.pendingListEl);
 
-		// Bottom row: pointed label + done button
-		const bottomRow = document.createElement("div");
-		bottomRow.className = "emily-feelings-bottom-row";
-
-		this.pointedLabelEl = document.createElement("div");
-		this.pointedLabelEl.className = "emily-feelings-pointed";
-		this.pointedLabelEl.textContent = "Spin the wheel!";
-		this.pointedLabelEl.addEventListener("click", () => {
-			const emotion = this.wheel.getPointedEmotion();
-			if (emotion) this.addEmotion(emotion);
-		});
-		bottomRow.appendChild(this.pointedLabelEl);
-
 		this.doneBtn = document.createElement("button");
 		this.doneBtn.className = "emily-feelings-done";
 		this.doneBtn.textContent = "Done";
@@ -84,9 +71,7 @@ export class FeelingsOverlay {
 			}
 			this.remove();
 		});
-		bottomRow.appendChild(this.doneBtn);
-
-		this.sidebar.appendChild(bottomRow);
+		this.sidebar.appendChild(this.doneBtn);
 
 		// Create wheel — renders directly into the backdrop
 		this.wheel = new FeelingsWheel(this.backdrop, (emotion) => {
@@ -100,7 +85,6 @@ export class FeelingsOverlay {
 			this.positionElements();
 		});
 
-		this.startPointedUpdate();
 	}
 
 	private boundResize: () => void;
@@ -109,18 +93,6 @@ export class FeelingsOverlay {
 		const edgeX = this.wheel.getVisibleEdgeX();
 		// Arrow sits at the wheel's right edge, vertically centered
 		this.indicator.style.left = `${edgeX - 24}px`; // 24 = arrow width, so tip touches edge
-	}
-
-	private startPointedUpdate(): void {
-		const update = () => {
-			const emotion = this.wheel.getPointedEmotion();
-			if (emotion && this.pointedLabelEl.textContent !== emotion) {
-				this.pointedLabelEl.textContent = emotion;
-				this.pointedLabelEl.style.borderLeftColor = this.wheel.getPointedColor();
-			}
-			this.pointedUpdateId = requestAnimationFrame(update);
-		};
-		this.pointedUpdateId = requestAnimationFrame(update);
 	}
 
 	private addEmotion(emotion: string): void {
@@ -172,20 +144,20 @@ export class FeelingsOverlay {
 			const b = Math.round(parseInt(hex.slice(5, 7), 16) * 0.7);
 			chip.style.background = `rgb(${r}, ${g}, ${b})`;
 
-			chip.textContent = emotion;
-			const removeBtn = document.createElement("span");
-			removeBtn.className = "emily-feelings-chip-x";
-			removeBtn.textContent = "\u00d7";
-			removeBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
+			chip.textContent = emotion + " \u00d7";
+			chip.addEventListener("click", () => {
 				this.removeEmotion(emotion);
 			});
-			chip.appendChild(removeBtn);
 			this.pendingListEl.appendChild(chip);
 		}
 	}
 
 	open(): void {
+		// Dismiss mobile keyboard
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
+
 		document.body.appendChild(this.backdrop);
 
 		// Resize after DOM insertion so container has dimensions
@@ -209,9 +181,6 @@ export class FeelingsOverlay {
 	private remove(): void {
 		if (this.removed) return;
 		this.removed = true;
-		if (this.pointedUpdateId !== null) {
-			cancelAnimationFrame(this.pointedUpdateId);
-		}
 		window.removeEventListener("resize", this.boundResize);
 		this.wheel.destroy();
 		this.backdrop.remove();

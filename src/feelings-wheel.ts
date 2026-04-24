@@ -51,7 +51,7 @@ export class FeelingsWheel {
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
 		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.90},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95},
 	) {
 		// Map 0-100 slider to 0-0.9 warp strength
 		this.zoomStrength = (zoomPercent / 100) * 0.9;
@@ -71,7 +71,7 @@ export class FeelingsWheel {
 		this.canvas.className = "emily-feelings-canvas";
 		this.container.appendChild(this.canvas);
 
-		this.ctx = this.canvas.getContext("2d")!;
+		this.ctx = this.canvas.getContext("2d", {desynchronized: true}) as CanvasRenderingContext2D;
 
 		this.boundPointerDown = this.onPointerDown.bind(this);
 		this.boundPointerMove = this.onPointerMove.bind(this);
@@ -412,8 +412,8 @@ export class FeelingsWheel {
 		if (!this.isDragging) return;
 		this.isDragging = false;
 
-		// Tap detection
-		if (this.totalDragDist < 6) {
+		// Tap detection — generous threshold for touch screens
+		if (this.totalDragDist < 20) {
 			const emotion = this.hitTest(e.clientX, e.clientY);
 			if (emotion) {
 				this.flashEmotion(emotion);
