@@ -339,7 +339,9 @@ export class FeelingsWheel {
 				const warpedArc = Math.abs(endA - startA);
 				const ratio = warpedArc / origArc;
 				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale);
-				scaledFs = Math.max(scaledFs, fs * 0.3); // floor at 30% of base
+				scaledFs = Math.max(scaledFs, fs * 0.3);
+				// Quantize to whole pixels to avoid per-frame font rasterization
+				scaledFs = Math.round(scaledFs);
 			}
 			ctx.font = `600 ${scaledFs}px -apple-system, BlinkMacSystemFont, sans-serif`;
 			// letterSpacing is supported in modern browsers but not in the TS Canvas types yet
