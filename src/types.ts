@@ -53,6 +53,7 @@ export interface EmilySettings {
 	rolodexFloor: number;
 	rolodexPeak: number;
 	rolodexResolution: number;
+	feelingsWheelReach: number;
 	feelingsWheelSnap: number;
 	feelingsWheelFriction: number;
 	feelingsWheelMaxSpeed: number;
@@ -75,6 +76,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	rolodexFloor: 0.06,
 	rolodexPeak: 0.2,
 	rolodexResolution: 1024,
+	feelingsWheelReach: 0.90,
 	feelingsWheelSnap: 0.08,
 	feelingsWheelFriction: 0.92,
 	feelingsWheelMaxSpeed: 0.035,

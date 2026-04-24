@@ -222,6 +222,19 @@ export class EmilySettingTab extends PluginSettingTab {
 		physicsSection.createEl("h3", {text: "Wheel physics"});
 
 		new Setting(physicsSection)
+			.setName("Viewport reach")
+			.setDesc("How far the wheel extends into the viewport (0.5 = half, 0.8 = most of the screen)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.feelingsWheelReach))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num > 0 && num <= 1) {
+						this.plugin.settings.feelingsWheelReach = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(physicsSection)
 			.setName("Snap strength")
 			.setDesc("How strongly the wheel homes to center after a flick (0 = no snap)")
 			.addText(text => text

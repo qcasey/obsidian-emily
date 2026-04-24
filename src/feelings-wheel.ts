@@ -51,7 +51,7 @@ export class FeelingsWheel {
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
 		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.90},
 	) {
 		// Map 0-100 slider to 0-0.9 warp strength
 		this.zoomStrength = (zoomPercent / 100) * 0.9;
@@ -93,7 +93,7 @@ export class FeelingsWheel {
 		if (w === 0 || h === 0) return;
 
 		this.radius = h * 0.85;
-		const targetVisibleWidth = Math.min(w * 0.65, this.radius * 0.75);
+		const targetVisibleWidth = Math.min(w * this.physics.reach, this.radius * 0.75);
 		this.centerX = targetVisibleWidth - this.radius;
 		this.centerY = h / 2;
 

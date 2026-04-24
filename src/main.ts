@@ -84,6 +84,7 @@ export default class EmilyPlugin extends Plugin {
 						snap: this.settings.feelingsWheelSnap,
 						friction: this.settings.feelingsWheelFriction,
 						maxSpeed: this.settings.feelingsWheelMaxSpeed,
+						reach: this.settings.feelingsWheelReach,
 					},
 				);
 				overlay.open();
