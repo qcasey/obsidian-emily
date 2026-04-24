@@ -5,7 +5,6 @@ import {buildFlatSegments} from "./feelings-data";
 export class FeelingsOverlay {
 	private backdrop: HTMLElement;
 	private wheel: FeelingsWheel;
-	private closeBtn: HTMLElement;
 	private indicator: HTMLElement;
 	private pendingEmotions: string[] = [];
 	private emotionColors: Map<string, string> = new Map();
@@ -40,13 +39,6 @@ export class FeelingsOverlay {
 				this.close();
 			}
 		});
-
-		// Close button
-		this.closeBtn = document.createElement("button");
-		this.closeBtn.className = "emily-feelings-close";
-		this.closeBtn.textContent = "\u00d7";
-		this.closeBtn.addEventListener("click", () => this.close());
-		this.backdrop.appendChild(this.closeBtn);
 
 		// Settings cog
 		if (this.onOpenSettings) {
@@ -107,7 +99,7 @@ export class FeelingsOverlay {
 	private positionElements(): void {
 		const edgeX = this.wheel.getVisibleEdgeX();
 		// Arrow sits at the wheel's right edge, vertically centered
-		this.indicator.style.left = `${edgeX - 24}px`; // 24 = arrow width, so tip touches edge
+		this.indicator.style.left = `${edgeX - 12}px`; // 12 = arrow width, so tip touches edge
 	}
 
 	private addEmotion(emotion: string): void {
