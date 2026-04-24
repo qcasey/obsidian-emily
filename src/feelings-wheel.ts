@@ -228,16 +228,18 @@ export class FeelingsWheel {
 
 	private unwarpAngle(warped: number): number {
 		if (this.drum3d === "size") {
-			let unwarped = this.sizeUnwarpAngle(warped);
+			const target = this.sizeUnwarpAngle(warped);
 			if (this.zoomStrength > 0) {
-				// Invert zoom warp
+				// Invert zoom warp: solve x + A*sin(x) = target for x
+				let x = target;
 				for (let i = 0; i < 8; i++) {
-					const f = unwarped + this.zoomStrength * Math.sin(unwarped) - unwarped;
-					const fp = 1 + this.zoomStrength * Math.cos(unwarped);
-					unwarped -= f / fp;
+					const f = x + this.zoomStrength * Math.sin(x) - target;
+					const fp = 1 + this.zoomStrength * Math.cos(x);
+					x -= f / fp;
 				}
+				return x;
 			}
-			return unwarped;
+			return target;
 		}
 		const w = this.effectiveWarp;
 		if (w === 0) return warped;

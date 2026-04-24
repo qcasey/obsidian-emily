@@ -21,6 +21,7 @@ export class FeelingsOverlay {
 		private drum3d: "off" | "opacity" | "size" = "off",
 		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
 		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95},
+		private onOpenSettings?: () => void,
 	) {
 		// Build color lookup
 		const segments = buildFlatSegments();
@@ -46,6 +47,18 @@ export class FeelingsOverlay {
 		this.closeBtn.textContent = "\u00d7";
 		this.closeBtn.addEventListener("click", () => this.close());
 		this.backdrop.appendChild(this.closeBtn);
+
+		// Settings cog
+		if (this.onOpenSettings) {
+			const settingsBtn = document.createElement("button");
+			settingsBtn.className = "emily-feelings-settings";
+			settingsBtn.innerHTML = "&#9881;";
+			settingsBtn.addEventListener("click", () => {
+				this.onOpenSettings!();
+				this.close();
+			});
+			this.backdrop.appendChild(settingsBtn);
+		}
 
 		// Indicator arrow
 		this.indicator = document.createElement("div");

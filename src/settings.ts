@@ -113,6 +113,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Show settings icon on wheel")
+			.setDesc("Show a cog icon in the feelings wheel dialog to quickly open settings")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showWheelSettingsIcon)
+				.onChange(async (value) => {
+					this.plugin.settings.showWheelSettingsIcon = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Feelings wheel zoom")
 			.setDesc("How much to magnify emotions near the indicator arrow (0 = uniform)")
 			.addSlider(slider => slider

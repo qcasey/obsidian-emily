@@ -86,6 +86,14 @@ export default class EmilyPlugin extends Plugin {
 						maxSpeed: this.settings.feelingsWheelMaxSpeed,
 						reach: this.settings.feelingsWheelReach,
 					},
+					this.settings.showWheelSettingsIcon
+						? () => {
+							// @ts-expect-error — Obsidian internal API
+							this.app.setting.open();
+							// @ts-expect-error — Obsidian internal API
+							this.app.setting.openTabById("emily");
+						}
+						: undefined,
 				);
 				overlay.open();
 			},

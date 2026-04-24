@@ -58,6 +58,7 @@ export interface EmilySettings {
 	feelingsWheelFriction: number;
 	feelingsWheelMaxSpeed: number;
 	rolodexSnap: number;
+	showWheelSettingsIcon: boolean;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -81,6 +82,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	feelingsWheelFriction: 0.92,
 	feelingsWheelMaxSpeed: 0.035,
 	rolodexSnap: 0.02,
+	showWheelSettingsIcon: true,
 };
 
 export function hashTopicColor(name: string): string {
