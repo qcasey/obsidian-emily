@@ -249,6 +249,27 @@ export class EmilySettingTab extends PluginSettingTab {
 					this.display();
 				}));
 
+		new Setting(rolodexSection)
+			.setName("Font ceiling")
+			.setDesc(`Max font growth multiplier — 0 = no growth, 1 = full growth (default: ${DEFAULT_SETTINGS.rolodexFontCeiling})`)
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexFontCeiling))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0 && num <= 1) {
+						this.plugin.settings.rolodexFontCeiling = num;
+						await this.plugin.saveSettings();
+					}
+				}))
+			.addExtraButton(btn => btn
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.rolodexFontCeiling = DEFAULT_SETTINGS.rolodexFontCeiling;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
 		// Physics tuning section
 		const physicsSection = containerEl.createDiv();
 		physicsSection.createEl("h3", {text: "Wheel physics"});

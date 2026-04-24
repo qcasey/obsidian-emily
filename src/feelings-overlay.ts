@@ -18,7 +18,7 @@ export class FeelingsOverlay {
 		private onCancel: () => void,
 		private zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5},
+		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5, fontCeiling: 0.8},
 		private physics = {snap: 0.08, friction: 0.92, reach: 0.95},
 		private onOpenSettings?: () => void,
 	) {

@@ -80,6 +80,7 @@ export default class EmilyPlugin extends Plugin {
 						resolution: this.settings.rolodexResolution,
 						snap: this.settings.rolodexSnap,
 						fontScale: this.settings.rolodexFontScale,
+						fontCeiling: this.settings.rolodexFontCeiling,
 					},
 					{
 						snap: this.settings.feelingsWheelSnap,

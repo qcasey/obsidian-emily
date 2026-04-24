@@ -51,7 +51,7 @@ export class FeelingsWheel {
 		private onTapEmotion: (emotion: string) => void,
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5},
+		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5, fontCeiling: 0.8},
 		private physics = {snap: 0.08, friction: 0.92, reach: 0.95},
 		private onTapEmpty?: () => void,
 	) {
@@ -63,6 +63,7 @@ export class FeelingsWheel {
 		this.rolodexN = rolodex.resolution;
 		this.rolodexSnap = rolodex.snap;
 		this.rolodexFontScale = rolodex.fontScale;
+		this.rolodexFontCeiling = rolodex.fontCeiling;
 		const segments = buildFlatSegments();
 		this.coreSegments = segments.core;
 		this.secSegments = segments.secondary;
@@ -156,6 +157,7 @@ export class FeelingsWheel {
 	private rolodexN: number;
 	private rolodexSnap: number;
 	private rolodexFontScale: number;
+	private rolodexFontCeiling: number;
 
 	/** Build lookup tables for size warp (called once in constructor) */
 	private buildSizeWarpTable(): void {
@@ -339,7 +341,7 @@ export class FeelingsWheel {
 				const origArc = seg.endAngle - seg.startAngle;
 				const warpedArc = Math.abs(endA - startA);
 				const ratio = warpedArc / origArc;
-				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale * 0.8);
+				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale * this.rolodexFontCeiling);
 				scaledFs = Math.max(scaledFs, fs * 0.3);
 				// Quantize to whole pixels to avoid per-frame font rasterization
 				scaledFs = Math.round(scaledFs);

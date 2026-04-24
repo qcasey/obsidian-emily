@@ -58,6 +58,7 @@ export interface EmilySettings {
 	feelingsWheelFriction: number;
 	rolodexSnap: number;
 	rolodexFontScale: number;
+	rolodexFontCeiling: number;
 	showWheelSettingsIcon: boolean;
 }
 
@@ -82,6 +83,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	feelingsWheelFriction: 0.92,
 	rolodexSnap: 0.02,
 	rolodexFontScale: 0.5,
+	rolodexFontCeiling: 0.8,
 	showWheelSettingsIcon: true,
 };
 
