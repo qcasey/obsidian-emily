@@ -14,7 +14,7 @@ export interface EmotionSector {
 export const FEELINGS_WHEEL: EmotionSector[] = [
 	{
 		core: "Happy",
-		color: "#F7DC6F",
+		color: "#E88501",
 		secondary: [
 			{label: "Playful", tertiary: ["Aroused", "Cheeky"]},
 			{label: "Content", tertiary: ["Free", "Joyful"]},
@@ -29,7 +29,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 	},
 	{
 		core: "Sad",
-		color: "#5DADE2",
+		color: "#322B54",
 		secondary: [
 			{label: "Lonely", tertiary: ["Isolated", "Abandoned"]},
 			{label: "Vulnerable", tertiary: ["Victimized", "Fragile"]},
@@ -41,7 +41,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 	},
 	{
 		core: "Disgusted",
-		color: "#82E0AA",
+		color: "#B45D32",
 		secondary: [
 			{label: "Disapproving", tertiary: ["Judgmental", "Embarrassed"]},
 			{label: "Disappointed", tertiary: ["Appalled", "Revolted"]},
@@ -51,7 +51,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 	},
 	{
 		core: "Angry",
-		color: "#EC7063",
+		color: "#CE2C3C",
 		secondary: [
 			{label: "Let down", tertiary: ["Betrayed", "Resentful"]},
 			{label: "Humiliated", tertiary: ["Disrespected", "Ridiculed"]},
@@ -65,7 +65,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 	},
 	{
 		core: "Fearful",
-		color: "#73C6B6",
+		color: "#D2278A",
 		secondary: [
 			{label: "Scared", tertiary: ["Helpless", "Frightened"]},
 			{label: "Anxious", tertiary: ["Overwhelmed", "Worried"]},
@@ -77,7 +77,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 	},
 	{
 		core: "Surprised",
-		color: "#F5B041",
+		color: "#4A745F",
 		secondary: [
 			{label: "Startled", tertiary: ["Shocked", "Dismayed"]},
 			{label: "Confused", tertiary: ["Disillusioned", "Perplexed"]},

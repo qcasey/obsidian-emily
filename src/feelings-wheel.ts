@@ -173,7 +173,7 @@ export class FeelingsWheel {
 			ctx.rotate(textAngle);
 
 			ctx.font = `bold ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
-			ctx.fillStyle = "#1a1a1a";
+			ctx.fillStyle = "#ffffff";
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
 			ctx.fillText(seg.label, 0, 0);
