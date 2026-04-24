@@ -626,14 +626,15 @@
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	padding: 10px 14px;
-	gap: 8px;
+	padding: 0;
+	gap: 0;
 	background: rgba(30, 30, 30, 0.8);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
 	border-radius: 28px;
 	max-width: min(90vw, 600px);
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
 }
 
 @media (max-width: 600px) {
@@ -647,12 +648,13 @@
 	transform: translateX(-50%) translateY(0);
 }
 
-/* Pending chips — row above the bottom controls */
+/* Pending chips — row above the button */
 .emily-feelings-pending {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 4px;
+	gap: 6px;
+	padding: 12px 14px;
 	min-height: 0;
 }
 
@@ -679,20 +681,21 @@
 	opacity: 0.7;
 }
 
-/* Done button — !important to override Obsidian themes */
+/* Done/Insert button — !important to override Obsidian themes */
 .emily-feelings-done {
-	padding: 10px 24px !important;
-	min-height: 44px !important;
-	border-radius: 10px !important;
+	padding: 14px 24px !important;
+	min-height: 52px !important;
+	border-radius: 0 !important;
 	border: none !important;
 	background: rgba(255, 255, 255, 0.2) !important;
 	color: rgba(255, 255, 255, 0.8) !important;
-	font-size: 15px !important;
+	font-size: 16px !important;
 	font-weight: 700 !important;
 	cursor: pointer !important;
+	width: 100% !important;
 	flex-shrink: 0;
 	transition: filter 0.06s ease, transform 0.06s ease, background 0.3s ease, color 0.3s ease;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+	box-shadow: none !important;
 }
 
 .emily-feelings-done:hover {
