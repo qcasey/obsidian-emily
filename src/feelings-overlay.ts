@@ -20,7 +20,7 @@ export class FeelingsOverlay {
 		private zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
 		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95, sensitivity: 0.003},
 		private onOpenSettings?: () => void,
 	) {
 		// Build color lookup
@@ -89,7 +89,9 @@ export class FeelingsOverlay {
 		// Create wheel — renders directly into the backdrop
 		this.wheel = new FeelingsWheel(this.backdrop, (emotion) => {
 			this.addEmotion(emotion);
-		}, this.zoomPercent, this.drum3d, this.rolodex, this.physics);
+		}, this.zoomPercent, this.drum3d, this.rolodex, this.physics, () => {
+			this.close();
+		});
 
 		// Position arrow at the wheel's right edge
 		this.positionElements();

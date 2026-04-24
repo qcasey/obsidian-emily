@@ -1,5 +1,6 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import type EmilyPlugin from "./main";
+import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
 
 export class EmilySettingTab extends PluginSettingTab {
@@ -232,55 +233,65 @@ export class EmilySettingTab extends PluginSettingTab {
 		physicsSection.createEl("h3", {text: "Wheel physics"});
 
 		new Setting(physicsSection)
-			.setName("Viewport reach")
-			.setDesc("How far the wheel extends into the viewport (0.5 = half, 0.8 = most of the screen)")
-			.addText(text => text
-				.setValue(String(this.plugin.settings.feelingsWheelReach))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num > 0 && num <= 1) {
-						this.plugin.settings.feelingsWheelReach = num;
-						await this.plugin.saveSettings();
-					}
+			.setName("Reset physics to defaults")
+			.setDesc("Restore all wheel physics settings to their default values")
+			.addButton(btn => btn
+				.setButtonText("Reset")
+				.onClick(async () => {
+					this.plugin.settings.feelingsWheelSensitivity = DEFAULT_SETTINGS.feelingsWheelSensitivity;
+					this.plugin.settings.feelingsWheelReach = DEFAULT_SETTINGS.feelingsWheelReach;
+					this.plugin.settings.feelingsWheelSnap = DEFAULT_SETTINGS.feelingsWheelSnap;
+					this.plugin.settings.feelingsWheelFriction = DEFAULT_SETTINGS.feelingsWheelFriction;
+					this.plugin.settings.feelingsWheelMaxSpeed = DEFAULT_SETTINGS.feelingsWheelMaxSpeed;
+					await this.plugin.saveSettings();
+					this.display();
 				}));
 
-		new Setting(physicsSection)
-			.setName("Snap strength")
-			.setDesc("How strongly the wheel homes to center after a flick (0 = no snap)")
-			.addText(text => text
-				.setValue(String(this.plugin.settings.feelingsWheelSnap))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num >= 0) {
-						this.plugin.settings.feelingsWheelSnap = num;
+		const physicsSetting = (
+			name: string, desc: string,
+			key: keyof EmilySettings,
+			validate: (n: number) => boolean,
+		) => {
+			new Setting(physicsSection)
+				.setName(name)
+				.setDesc(`${desc} (default: ${DEFAULT_SETTINGS[key]})`)
+				.addText(text => text
+					.setValue(String(this.plugin.settings[key]))
+					.onChange(async (value) => {
+						const num = parseFloat(value);
+						if (!isNaN(num) && validate(num)) {
+							(this.plugin.settings[key] as number) = num;
+							await this.plugin.saveSettings();
+						}
+					}))
+				.addExtraButton(btn => btn
+					.setIcon("reset")
+					.setTooltip("Reset to default")
+					.onClick(async () => {
+						(this.plugin.settings[key] as number) = DEFAULT_SETTINGS[key] as number;
 						await this.plugin.saveSettings();
-					}
-				}));
+						this.display();
+					}));
+		};
 
-		new Setting(physicsSection)
-			.setName("Inertia (friction)")
-			.setDesc("How quickly the wheel decelerates (0.8 = heavy, 0.98 = slippery)")
-			.addText(text => text
-				.setValue(String(this.plugin.settings.feelingsWheelFriction))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num > 0 && num < 1) {
-						this.plugin.settings.feelingsWheelFriction = num;
-						await this.plugin.saveSettings();
-					}
-				}));
+		physicsSetting("Scroll sensitivity",
+			"How much the wheel rotates per pixel of drag — lower = less sensitive",
+			"feelingsWheelSensitivity", n => n > 0);
 
-		new Setting(physicsSection)
-			.setName("Max speed")
-			.setDesc("Maximum spin velocity (lower = more controlled)")
-			.addText(text => text
-				.setValue(String(this.plugin.settings.feelingsWheelMaxSpeed))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num > 0) {
-						this.plugin.settings.feelingsWheelMaxSpeed = num;
-						await this.plugin.saveSettings();
-					}
-				}));
+		physicsSetting("Viewport reach",
+			"How far the wheel extends into the viewport — 0.5 = half, 0.8 = most of screen",
+			"feelingsWheelReach", n => n > 0 && n <= 1);
+
+		physicsSetting("Snap strength",
+			"How strongly the wheel homes to center after a flick — 0 = no snap",
+			"feelingsWheelSnap", n => n >= 0);
+
+		physicsSetting("Inertia (friction)",
+			"How quickly the wheel decelerates — 0.8 = heavy, 0.98 = slippery",
+			"feelingsWheelFriction", n => n > 0 && n < 1);
+
+		physicsSetting("Max speed",
+			"Maximum spin velocity — lower = more controlled",
+			"feelingsWheelMaxSpeed", n => n > 0);
 	}
 }

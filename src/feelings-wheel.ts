@@ -4,7 +4,7 @@
  */
 import {buildFlatSegments, type FlatSegment} from "./feelings-data";
 
-const SENSITIVITY = 0.003;
+const DEFAULT_SENSITIVITY = 0.003;
 const MIN_VELOCITY = 0.0002;
 const DRUM_ZOOM_BOOST = 0.85; // additional angular warp when 3D is on
 const DRUM_MIN_OPACITY = 0.1; // opacity at the far side of the drum
@@ -51,7 +51,8 @@ export class FeelingsWheel {
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
 		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95, sensitivity: DEFAULT_SENSITIVITY},
+		private onTapEmpty?: () => void,
 	) {
 		// Map 0-100 slider to 0-0.9 warp strength
 		this.zoomStrength = (zoomPercent / 100) * 0.9;
@@ -398,7 +399,7 @@ export class FeelingsWheel {
 
 		const now = performance.now();
 		const deltaY = e.clientY - this.lastPointerY;
-		const deltaAngle = deltaY * SENSITIVITY;
+		const deltaAngle = deltaY * this.physics.sensitivity;
 		const dt = Math.max(now - this.lastPointerTime, 1);
 
 		this.angle += deltaAngle;
@@ -422,6 +423,9 @@ export class FeelingsWheel {
 				this.onTapEmotion(emotion);
 				return;
 			}
+			// Tapped empty canvas area (corners, outside rings)
+			this.onTapEmpty?.();
+			return;
 		}
 
 		// Light inertia — short coast then stop

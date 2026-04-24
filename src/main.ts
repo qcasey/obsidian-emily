@@ -85,6 +85,7 @@ export default class EmilyPlugin extends Plugin {
 						friction: this.settings.feelingsWheelFriction,
 						maxSpeed: this.settings.feelingsWheelMaxSpeed,
 						reach: this.settings.feelingsWheelReach,
+						sensitivity: this.settings.feelingsWheelSensitivity,
 					},
 					this.settings.showWheelSettingsIcon
 						? () => {

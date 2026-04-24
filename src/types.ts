@@ -58,6 +58,7 @@ export interface EmilySettings {
 	feelingsWheelFriction: number;
 	feelingsWheelMaxSpeed: number;
 	rolodexSnap: number;
+	feelingsWheelSensitivity: number;
 	showWheelSettingsIcon: boolean;
 }
 
@@ -82,6 +83,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	feelingsWheelFriction: 0.92,
 	feelingsWheelMaxSpeed: 0.035,
 	rolodexSnap: 0.02,
+	feelingsWheelSensitivity: 0.003,
 	showWheelSettingsIcon: true,
 };
 
