@@ -228,6 +228,27 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
+		new Setting(rolodexSection)
+			.setName("Scroll sensitivity")
+			.setDesc(`Drag sensitivity in rolodex mode — lower = less sensitive (default: ${DEFAULT_SETTINGS.rolodexSensitivity})`)
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexSensitivity))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num > 0) {
+						this.plugin.settings.rolodexSensitivity = num;
+						await this.plugin.saveSettings();
+					}
+				}))
+			.addExtraButton(btn => btn
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.rolodexSensitivity = DEFAULT_SETTINGS.rolodexSensitivity;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
 		// Physics tuning section
 		const physicsSection = containerEl.createDiv();
 		physicsSection.createEl("h3", {text: "Wheel physics"});

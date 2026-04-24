@@ -27,6 +27,7 @@ export class FeelingsWheel {
 	private lastPointerY = 0;
 	private lastPointerTime = 0;
 	private totalDragDist = 0;
+	private recentVelocities: number[] = [];
 	private highlightedLabel: string | null = null;
 	private highlightAlpha = 0;
 
@@ -50,7 +51,7 @@ export class FeelingsWheel {
 		private onTapEmotion: (emotion: string) => void,
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
+		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, sensitivity: 0.0015},
 		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95, sensitivity: DEFAULT_SENSITIVITY},
 		private onTapEmpty?: () => void,
 	) {
@@ -61,6 +62,7 @@ export class FeelingsWheel {
 		this.rolodexPeak = rolodex.peak;
 		this.rolodexN = rolodex.resolution;
 		this.rolodexSnap = rolodex.snap;
+		this.rolodexSensitivity = rolodex.sensitivity;
 		const segments = buildFlatSegments();
 		this.coreSegments = segments.core;
 		this.secSegments = segments.secondary;
@@ -153,6 +155,7 @@ export class FeelingsWheel {
 	private rolodexPeak: number;
 	private rolodexN: number;
 	private rolodexSnap: number;
+	private rolodexSensitivity: number;
 
 	/** Build lookup tables for size warp (called once in constructor) */
 	private buildSizeWarpTable(): void {
@@ -382,6 +385,7 @@ export class FeelingsWheel {
 		this.isDragging = true;
 		this.velocity = 0;
 		this.totalDragDist = 0;
+		this.recentVelocities = [];
 		this.lastPointerY = e.clientY;
 		this.lastPointerTime = performance.now();
 		this.canvas.setPointerCapture(e.pointerId);
@@ -399,12 +403,16 @@ export class FeelingsWheel {
 
 		const now = performance.now();
 		const deltaY = e.clientY - this.lastPointerY;
-		const deltaAngle = deltaY * this.physics.sensitivity;
+		const sens = this.drum3d === "size" ? this.rolodexSensitivity : this.physics.sensitivity;
+		const deltaAngle = deltaY * sens;
 		const dt = Math.max(now - this.lastPointerTime, 1);
 
 		this.angle += deltaAngle;
 		this.totalDragDist += Math.abs(deltaY);
-		this.velocity = Math.max(-this.physics.maxSpeed, Math.min(this.physics.maxSpeed, deltaAngle / (dt / 16.67)));
+		const frameVel = deltaAngle / (dt / 16.67);
+		this.velocity = Math.max(-this.physics.maxSpeed, Math.min(this.physics.maxSpeed, frameVel));
+		this.recentVelocities.push(frameVel);
+		if (this.recentVelocities.length > 4) this.recentVelocities.shift();
 		this.lastPointerY = e.clientY;
 		this.lastPointerTime = now;
 
@@ -426,6 +434,16 @@ export class FeelingsWheel {
 			// Tapped empty canvas area (corners, outside rings)
 			this.onTapEmpty?.();
 			return;
+		}
+
+		// Use peak recent velocity for flick — the last frame often has a low
+		// delta because the finger is already lifting off the screen
+		if (this.recentVelocities.length > 0) {
+			let peak = 0;
+			for (const v of this.recentVelocities) {
+				if (Math.abs(v) > Math.abs(peak)) peak = v;
+			}
+			this.velocity = Math.max(-this.physics.maxSpeed, Math.min(this.physics.maxSpeed, peak));
 		}
 
 		// Light inertia — short coast then stop
