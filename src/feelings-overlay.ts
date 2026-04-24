@@ -1,4 +1,4 @@
-import type {Editor} from "obsidian";
+import {type Editor, setIcon} from "obsidian";
 import {FeelingsWheel} from "./feelings-wheel";
 import {buildFlatSegments} from "./feelings-data";
 
@@ -52,7 +52,7 @@ export class FeelingsOverlay {
 		if (this.onOpenSettings) {
 			const settingsBtn = document.createElement("button");
 			settingsBtn.className = "emily-feelings-settings";
-			settingsBtn.innerHTML = "&#9881;";
+			setIcon(settingsBtn, "settings");
 			settingsBtn.addEventListener("click", () => {
 				this.onOpenSettings!();
 				this.close();
