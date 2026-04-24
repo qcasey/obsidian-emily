@@ -18,7 +18,7 @@ export interface TopicConfig {
 	min: number | null;
 	subtle: boolean;
 	subtleOpacity: number;
-	group: string;
+	group: string[];
 	aggregate: "none" | "sum" | "average";
 	heatmapGradient: boolean;
 }

@@ -130,7 +130,7 @@ export class DataService {
 			min: null,
 			subtle: false,
 			subtleOpacity: 0.6,
-			group: "",
+			group: [],
 			aggregate: "none",
 			heatmapGradient: true,
 		};
@@ -154,7 +154,9 @@ export class DataService {
 			min: typeof minVal === "number" ? minVal : null,
 			subtle: fm["tracking_subtle"] === true,
 			subtleOpacity: typeof fm["tracking_subtle_opacity"] === "number" ? fm["tracking_subtle_opacity"] : 0.6,
-			group: (fm["tracking_group"] as string) || "",
+			group: Array.isArray(fm["tracking_group"])
+				? (fm["tracking_group"] as string[]).map(g => String(g))
+				: fm["tracking_group"] ? [String(fm["tracking_group"])] : [],
 			aggregate: (fm["tracking_aggregate"] === "sum" || fm["tracking_aggregate"] === "average") ? fm["tracking_aggregate"] : "none",
 			heatmapGradient: fm["tracking_heatmap_gradient"] !== false,
 		};

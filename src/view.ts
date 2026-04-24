@@ -198,9 +198,9 @@ export class TrackingView extends ItemView {
 		});
 
 		// Group toggle buttons
-		const groups = new Set(this.topics.map(t => t.config.group).filter(g => g));
+		const groups = new Set(this.topics.flatMap(t => t.config.group));
 		for (const group of groups) {
-			const groupTopics = this.topics.filter(t => t.config.group === group);
+			const groupTopics = this.topics.filter(t => t.config.group.includes(group));
 			const allGroupEnabled = groupTopics.every(t => this.enabledTopics.has(t.name));
 			const groupBtn = this.legendEl.createEl("button", {
 				cls: "emily-legend-item emily-toggle-group",
@@ -259,7 +259,7 @@ export class TrackingView extends ItemView {
 				const group = this.plugin.settings.defaultEnabledGroup;
 				if (group) {
 					this.enabledTopics = new Set(
-						this.topics.filter(t => t.config.group.toLowerCase() === group.toLowerCase()).map(t => t.name)
+						this.topics.filter(t => t.config.group.some(g => g.toLowerCase() === group.toLowerCase())).map(t => t.name)
 					);
 				}
 			}
