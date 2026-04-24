@@ -172,11 +172,19 @@ export class FeelingsWheel {
 			}
 			ctx.rotate(textAngle);
 
-			ctx.font = `bold ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
+			ctx.font = `600 ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
+			// letterSpacing is supported in modern browsers but not in the TS Canvas types yet
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(ctx as any).letterSpacing = `${0.3 * dpr}px`;
 			ctx.fillStyle = "#ffffff";
 			ctx.textAlign = "center";
 			ctx.textBaseline = "middle";
+			ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+			ctx.shadowBlur = 3 * dpr;
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
 			ctx.fillText(seg.label, 0, 0);
+			ctx.shadowColor = "transparent";
 
 			ctx.restore();
 		}
