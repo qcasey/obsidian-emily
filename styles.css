@@ -663,10 +663,10 @@
 .emily-feelings-chip {
 	display: inline-flex;
 	align-items: center;
-	padding: 8px 18px;
-	border-radius: 20px;
+	padding: 6px 14px;
+	border-radius: 16px;
 	color: #fff;
-	font-size: 19px;
+	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.4;
 	white-space: nowrap;

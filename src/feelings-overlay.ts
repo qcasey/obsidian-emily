@@ -122,6 +122,7 @@ export class FeelingsOverlay {
 			this.doneBtn.textContent = "Done";
 			return;
 		}
+		this.doneBtn.textContent = "Insert";
 		this.doneBtn.style.setProperty("color", "#fff", "important");
 
 		let rSum = 0, gSum = 0, bSum = 0;
