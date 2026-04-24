@@ -51,7 +51,7 @@ export class FeelingsWheel {
 		private onTapEmotion: (emotion: string) => void,
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5, fontCeiling: 0.8},
+		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5, fontCeiling: 0.8, weightScale: 0.5},
 		private physics = {snap: 0.08, friction: 0.92, reach: 0.95},
 		private onTapEmpty?: () => void,
 	) {
@@ -64,6 +64,7 @@ export class FeelingsWheel {
 		this.rolodexSnap = rolodex.snap;
 		this.rolodexFontScale = rolodex.fontScale;
 		this.rolodexFontCeiling = rolodex.fontCeiling;
+		this.rolodexWeightScale = rolodex.weightScale;
 		const segments = buildFlatSegments();
 		this.coreSegments = segments.core;
 		this.secSegments = segments.secondary;
@@ -158,6 +159,7 @@ export class FeelingsWheel {
 	private rolodexSnap: number;
 	private rolodexFontScale: number;
 	private rolodexFontCeiling: number;
+	private rolodexWeightScale: number;
 
 	/** Build lookup tables for size warp (called once in constructor) */
 	private buildSizeWarpTable(): void {
@@ -337,16 +339,24 @@ export class FeelingsWheel {
 			ctx.rotate(textAngle);
 
 			let scaledFs = fs;
-			if (scaleFont && this.drum3d === "size" && this.rolodexFontScale > 0) {
+			let weight = 600;
+			if (scaleFont && this.drum3d === "size") {
 				const origArc = seg.endAngle - seg.startAngle;
 				const warpedArc = Math.abs(endA - startA);
 				const ratio = warpedArc / origArc;
-				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale * this.rolodexFontCeiling);
-				scaledFs = Math.max(scaledFs, fs * 0.3);
-				// Quantize to whole pixels to avoid per-frame font rasterization
-				scaledFs = Math.round(scaledFs);
+				if (this.rolodexFontScale > 0) {
+					scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale * this.rolodexFontCeiling);
+					scaledFs = Math.max(scaledFs, fs * 0.3);
+					scaledFs = Math.round(scaledFs);
+				}
+				if (this.rolodexWeightScale > 0) {
+					// Interpolate weight: ratio < 1 → lighter (300), ratio > 1 → bolder (900)
+					const t = Math.max(0, Math.min(1, (ratio - 0.3) / (3 - 0.3)));
+					weight = Math.round(300 + (900 - 300) * t * this.rolodexWeightScale + 600 * (1 - this.rolodexWeightScale));
+					weight = Math.round(weight / 100) * 100; // quantize to 100s
+				}
 			}
-			ctx.font = `600 ${scaledFs}px -apple-system, BlinkMacSystemFont, sans-serif`;
+			ctx.font = `${weight} ${scaledFs}px -apple-system, BlinkMacSystemFont, sans-serif`;
 			// letterSpacing is supported in modern browsers but not in the TS Canvas types yet
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(ctx as any).letterSpacing = `${0.3 * dpr}px`;

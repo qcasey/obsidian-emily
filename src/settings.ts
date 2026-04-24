@@ -270,6 +270,27 @@ export class EmilySettingTab extends PluginSettingTab {
 					this.display();
 				}));
 
+		new Setting(rolodexSection)
+			.setName("Weight scaling")
+			.setDesc(`Scale font weight with segment size — 0 = uniform (600), 1 = full range (300-900) (default: ${DEFAULT_SETTINGS.rolodexWeightScale})`)
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexWeightScale))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0 && num <= 1) {
+						this.plugin.settings.rolodexWeightScale = num;
+						await this.plugin.saveSettings();
+					}
+				}))
+			.addExtraButton(btn => btn
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.rolodexWeightScale = DEFAULT_SETTINGS.rolodexWeightScale;
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
 		// Physics tuning section
 		const physicsSection = containerEl.createDiv();
 		physicsSection.createEl("h3", {text: "Wheel physics"});
