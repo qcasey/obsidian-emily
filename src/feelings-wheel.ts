@@ -121,9 +121,9 @@ export class FeelingsWheel {
 
 		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-		this.drawRing(ctx, cx, cy, R, rot, this.coreSegments, CORE_INNER, CORE_OUTER, 18);
-		this.drawRing(ctx, cx, cy, R, rot, this.secSegments, SEC_INNER, SEC_OUTER, 15);
-		this.drawRing(ctx, cx, cy, R, rot, this.tertSegments, TERT_INNER, TERT_OUTER, 14);
+		this.drawRing(ctx, cx, cy, R, rot, this.coreSegments, CORE_INNER, CORE_OUTER, 18, false);
+		this.drawRing(ctx, cx, cy, R, rot, this.secSegments, SEC_INNER, SEC_OUTER, 15, false);
+		this.drawRing(ctx, cx, cy, R, rot, this.tertSegments, TERT_INNER, TERT_OUTER, 14, true);
 
 		// Ring border circles
 		ctx.strokeStyle = "rgba(255,255,255,0.35)";
@@ -277,6 +277,7 @@ export class FeelingsWheel {
 		segments: FlatSegment[],
 		innerFrac: number, outerFrac: number,
 		fontSize: number,
+		scaleFont: boolean,
 	): void {
 		const dpr = this.dpr;
 		const innerR = R * innerFrac;
@@ -334,11 +335,11 @@ export class FeelingsWheel {
 			ctx.rotate(textAngle);
 
 			let scaledFs = fs;
-			if (this.drum3d === "size" && this.rolodexFontScale > 0) {
+			if (scaleFont && this.drum3d === "size" && this.rolodexFontScale > 0) {
 				const origArc = seg.endAngle - seg.startAngle;
 				const warpedArc = Math.abs(endA - startA);
 				const ratio = warpedArc / origArc;
-				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale);
+				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale * 0.8);
 				scaledFs = Math.max(scaledFs, fs * 0.3);
 				// Quantize to whole pixels to avoid per-frame font rasterization
 				scaledFs = Math.round(scaledFs);
