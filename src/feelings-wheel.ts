@@ -5,9 +5,9 @@
 import {buildFlatSegments, type FlatSegment} from "./feelings-data";
 
 const SENSITIVITY = 0.003;
-const FRICTION = 0.92;
 const MIN_VELOCITY = 0.0002;
-const MAX_VELOCITY = 0.035;
+const DRUM_ZOOM_BOOST = 0.85; // additional angular warp when 3D is on
+const DRUM_MIN_OPACITY = 0.1; // opacity at the far side of the drum
 
 // Ring radii as fractions of total radius
 const CORE_INNER = 0.28;
@@ -43,14 +43,29 @@ export class FeelingsWheel {
 	private boundPointerMove: (e: PointerEvent) => void;
 	private boundPointerUp: (e: PointerEvent) => void;
 
+	private zoomStrength: number;
+
 	constructor(
 		private container: HTMLElement,
 		private onTapEmotion: (emotion: string) => void,
+		zoomPercent = 50,
+		private drum3d: "off" | "opacity" | "size" = "off",
+		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02},
+		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035},
 	) {
+		// Map 0-100 slider to 0-0.9 warp strength
+		this.zoomStrength = (zoomPercent / 100) * 0.9;
+		this.rolodexK = rolodex.k;
+		this.rolodexFloor = rolodex.floor;
+		this.rolodexPeak = rolodex.peak;
+		this.rolodexN = rolodex.resolution;
+		this.rolodexSnap = rolodex.snap;
 		const segments = buildFlatSegments();
 		this.coreSegments = segments.core;
 		this.secSegments = segments.secondary;
 		this.tertSegments = segments.tertiary;
+
+		this.buildSizeWarpTable();
 
 		this.canvas = document.createElement("canvas");
 		this.canvas.className = "emily-feelings-canvas";
@@ -117,6 +132,138 @@ export class FeelingsWheel {
 		}
 	}
 
+	/**
+	 * Warp an angle so arcs near the indicator (angle 0) expand and far arcs compress.
+	 * f(θ) = θ + A·sin(θ)  — monotonic for A < 1, preserves 0 and 2π.
+	 */
+	/** Total effective warp strength (zoom slider + drum boost) */
+	private get effectiveWarp(): number {
+		const base = this.zoomStrength;
+		if (this.drum3d === "opacity") return Math.min(base + DRUM_ZOOM_BOOST, 0.95);
+		if (this.drum3d === "size") return base; // size mode uses its own warp
+		return base;
+	}
+
+	// Precomputed size-warp lookup table
+	private sizeWarpFwd: number[] = [];
+	private sizeWarpRev: number[] = [];
+	private rolodexK: number;
+	private rolodexFloor: number;
+	private rolodexPeak: number;
+	private rolodexN: number;
+	private rolodexSnap: number;
+
+	/** Build lookup tables for size warp (called once in constructor) */
+	private buildSizeWarpTable(): void {
+		const N = this.rolodexN;
+		const K = this.rolodexK;
+		const TWO_PI = Math.PI * 2;
+		const dt = TWO_PI / N;
+
+		const FLOOR = this.rolodexFloor;
+		const PEAK = this.rolodexPeak;
+		const cum: number[] = [0];
+		for (let i = 0; i < N; i++) {
+			let d = (i + 0.5) * dt; // angle from 0
+			if (d > Math.PI) d = TWO_PI - d; // shortest wrap distance
+			cum.push(cum[i]! + (FLOOR + PEAK * Math.exp(-K * d * d)) * dt);
+		}
+		const total = cum[N]!;
+
+		// Forward table: original angle → warped angle
+		this.sizeWarpFwd = [];
+		for (let i = 0; i <= N; i++) {
+			this.sizeWarpFwd.push((cum[i]! / total) * TWO_PI);
+		}
+
+		// Inverse table via binary search
+		this.sizeWarpRev = [];
+		for (let i = 0; i <= N; i++) {
+			const target = (i / N) * TWO_PI;
+			let lo = 0, hi = N;
+			while (lo < hi) {
+				const mid = (lo + hi) >> 1;
+				if (this.sizeWarpFwd[mid]! < target) lo = mid + 1;
+				else hi = mid;
+			}
+			const idx = Math.max(0, lo - 1);
+			const a0 = this.sizeWarpFwd[idx]!;
+			const a1 = this.sizeWarpFwd[idx + 1]!;
+			const t = a1 > a0 ? (target - a0) / (a1 - a0) : 0;
+			this.sizeWarpRev.push(((idx + t) / N) * TWO_PI);
+		}
+	}
+
+	/** Interpolate from a lookup table */
+	private tableLookup(table: number[], θ: number): number {
+		const TWO_PI = Math.PI * 2;
+		const N = this.rolodexN;
+		const a = ((θ % TWO_PI) + TWO_PI) % TWO_PI;
+		const idx = (a / TWO_PI) * N;
+		const i = Math.min(Math.floor(idx), N - 1);
+		const t = idx - i;
+		return table[i]! + t * (table[i + 1]! - table[i]!) + (θ - a);
+	}
+
+	private sizeWarpAngle(θ: number): number {
+		return this.tableLookup(this.sizeWarpFwd, θ);
+	}
+
+	private sizeUnwarpAngle(warped: number): number {
+		return this.tableLookup(this.sizeWarpRev, warped);
+	}
+
+	private warpAngle(angle: number): number {
+		if (this.drum3d === "size") {
+			// Apply zoom warp first, then size warp on top
+			const zoomed = this.zoomStrength > 0
+				? angle + this.zoomStrength * Math.sin(angle)
+				: angle;
+			return this.sizeWarpAngle(zoomed);
+		}
+		const w = this.effectiveWarp;
+		if (w === 0) return angle;
+		return angle + w * Math.sin(angle);
+	}
+
+	private unwarpAngle(warped: number): number {
+		if (this.drum3d === "size") {
+			let unwarped = this.sizeUnwarpAngle(warped);
+			if (this.zoomStrength > 0) {
+				// Invert zoom warp
+				for (let i = 0; i < 8; i++) {
+					const f = unwarped + this.zoomStrength * Math.sin(unwarped) - unwarped;
+					const fp = 1 + this.zoomStrength * Math.cos(unwarped);
+					unwarped -= f / fp;
+				}
+			}
+			return unwarped;
+		}
+		const w = this.effectiveWarp;
+		if (w === 0) return warped;
+		let θ = warped;
+		for (let i = 0; i < 10; i++) {
+			const f = θ + w * Math.sin(θ) - warped;
+			const fp = 1 + w * Math.cos(θ);
+			θ -= f / fp;
+		}
+		return θ;
+	}
+
+	/**
+	 * Drum visibility: 1.0 at the indicator (angle 0), rapidly fading using
+	 * cos^3 so the effect is visible within the on-screen arc (~±60°).
+	 */
+	private drumVisibility(displayedAngle: number): number {
+		if (this.drum3d === "off") return 1;
+		let a = displayedAngle % (Math.PI * 2);
+		if (a > Math.PI) a -= Math.PI * 2;
+		if (a < -Math.PI) a += Math.PI * 2;
+		const c = Math.max(0, Math.cos(a));
+		const t = c * c * c; // cos^3 — tight spotlight falloff
+		return DRUM_MIN_OPACITY + (1 - DRUM_MIN_OPACITY) * t;
+	}
+
 	private drawRing(
 		ctx: CanvasRenderingContext2D,
 		cx: number, cy: number, R: number,
@@ -128,22 +275,31 @@ export class FeelingsWheel {
 		const dpr = this.dpr;
 		const innerR = R * innerFrac;
 		const outerR = R * outerFrac;
-		const midR = (innerR + outerR) / 2;
+		const ringMidR = (innerR + outerR) / 2;
 		const fs = fontSize * dpr;
 
-		ctx.font = `bold ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
-
 		for (const seg of segments) {
-			const startA = seg.startAngle + rot;
-			const endA = seg.endAngle + rot;
+			const startA = this.warpAngle(seg.startAngle + rot);
+			const endA = this.warpAngle(seg.endAngle + rot);
+			const midA = (startA + endA) / 2;
+			const vis = this.drumVisibility(midA);
 
-			// Draw arc segment
+			const isOpacity = this.drum3d === "opacity";
+
+			if (isOpacity) ctx.globalAlpha = vis;
+
+			// Draw arc segment — always uniform radii, angular warp handles size
 			ctx.beginPath();
 			ctx.arc(cx, cy, outerR, startA, endA);
 			ctx.arc(cx, cy, innerR, endA, startA, true);
 			ctx.closePath();
 
-			ctx.fillStyle = seg.color;
+			if (isOpacity) {
+				const br = 0.5 + 0.5 * vis;
+				ctx.fillStyle = this.adjustBrightness(seg.color, br);
+			} else {
+				ctx.fillStyle = seg.color;
+			}
 			ctx.fill();
 
 			// Highlight overlay
@@ -157,15 +313,14 @@ export class FeelingsWheel {
 			ctx.lineWidth = 1 * dpr;
 			ctx.stroke();
 
-			// Text — uniform size, always drawn (clipped naturally by canvas bounds)
-			const midAngle = (startA + endA) / 2;
-			const tx = cx + Math.cos(midAngle) * midR;
-			const ty = cy + Math.sin(midAngle) * midR;
+			// Text — always at ring midline, uniform size
+			const tx = cx + Math.cos(midA) * ringMidR;
+			const ty = cy + Math.sin(midA) * ringMidR;
 
 			ctx.save();
 			ctx.translate(tx, ty);
 
-			let textAngle = midAngle;
+			let textAngle = midA;
 			const normAngle = ((textAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 			if (normAngle > Math.PI / 2 && normAngle < Math.PI * 1.5) {
 				textAngle += Math.PI;
@@ -187,7 +342,16 @@ export class FeelingsWheel {
 			ctx.shadowColor = "transparent";
 
 			ctx.restore();
+			if (isOpacity) ctx.globalAlpha = 1;
 		}
+	}
+
+	/** Adjust a hex color's brightness (0 = black, 1 = original) */
+	private adjustBrightness(hex: string, factor: number): string {
+		const r = Math.min(255, Math.round(parseInt(hex.slice(1, 3), 16) * factor));
+		const g = Math.min(255, Math.round(parseInt(hex.slice(3, 5), 16) * factor));
+		const b = Math.min(255, Math.round(parseInt(hex.slice(5, 7), 16) * factor));
+		return `rgb(${r},${g},${b})`;
 	}
 
 	/** Quick dark flash that fades out in ~150ms */
@@ -237,7 +401,7 @@ export class FeelingsWheel {
 
 		this.angle += deltaAngle;
 		this.totalDragDist += Math.abs(deltaY);
-		this.velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, deltaAngle / (dt / 16.67)));
+		this.velocity = Math.max(-this.physics.maxSpeed, Math.min(this.physics.maxSpeed, deltaAngle / (dt / 16.67)));
 		this.lastPointerY = e.clientY;
 		this.lastPointerTime = now;
 
@@ -267,15 +431,15 @@ export class FeelingsWheel {
 	private startMomentum(): void {
 		const loop = () => {
 			if (this.isDragging) return;
-			this.velocity *= FRICTION;
+			this.velocity *= this.physics.friction;
 
 			// As velocity drops, gently steer toward the nearest segment center
 			const speed = Math.abs(this.velocity);
-			if (speed < MAX_VELOCITY * 0.5) {
+			if (speed < this.physics.maxSpeed * 0.5) {
 				const correction = this.getCenterCorrection();
-				// Blend in more correction as speed decreases
-				const strength = 1 - (speed / (MAX_VELOCITY * 0.5));
-				this.velocity += correction * 0.08 * strength;
+				const strength = 1 - (speed / (this.physics.maxSpeed * 0.5));
+				const snapForce = this.drum3d === "size" ? this.rolodexSnap : this.physics.snap;
+				this.velocity += correction * snapForce * strength;
 			}
 
 			this.angle += this.velocity;
@@ -316,7 +480,10 @@ export class FeelingsWheel {
 		const dy = localY - this.centerY;
 		const dist = Math.sqrt(dx * dx + dy * dy);
 
-		let hitAngle = Math.atan2(dy, dx) - this.angle;
+		// The visual angle on screen; unwarp to get back to original segment space
+		const visualAngle = Math.atan2(dy, dx);
+		const unwarpedVisual = this.unwarpAngle(visualAngle);
+		let hitAngle = unwarpedVisual - this.angle;
 		hitAngle = ((hitAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 
 		const distFrac = dist / this.radius;

@@ -59,6 +59,18 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Narration inherit window")
+			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
+			.addText(text => text
+				.setPlaceholder("0")
+				.setValue(String(this.plugin.settings.narrationInheritMinutes))
+				.onChange(async (value) => {
+					const num = parseInt(value, 10);
+					this.plugin.settings.narrationInheritMinutes = isNaN(num) ? 0 : Math.max(0, num);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Auto-embed on daily notes")
 			.setDesc("Automatically show a tracking chart at the bottom of daily notes")
 			.addToggle(toggle => toggle
@@ -101,15 +113,151 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Narration inherit window")
-			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
+			.setName("Feelings wheel zoom")
+			.setDesc("How much to magnify emotions near the indicator arrow (0 = uniform)")
+			.addSlider(slider => slider
+				.setLimits(0, 100, 5)
+				.setValue(this.plugin.settings.feelingsWheelZoom)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.feelingsWheelZoom = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Feelings wheel 3D effect")
+			.setDesc("How distant emotions visually recede from the indicator")
+			.addDropdown(dropdown => dropdown
+				.addOption("off", "Off")
+				.addOption("opacity", "Fade opacity")
+				.addOption("size", "Shrink size")
+				.setValue(this.plugin.settings.feelingsWheel3d)
+				.onChange(async (value) => {
+					this.plugin.settings.feelingsWheel3d = value as "off" | "opacity" | "size";
+					await this.plugin.saveSettings();
+				}));
+
+		// Rolodex tuning — only shown when 3D effect is "Shrink size"
+		const rolodexSection = containerEl.createDiv();
+		const updateRolodexVisibility = () => {
+			rolodexSection.style.display = this.plugin.settings.feelingsWheel3d === "size" ? "" : "none";
+		};
+		updateRolodexVisibility();
+
+		// Re-wire the dropdown above to toggle visibility
+		const dropdown3d = containerEl.querySelector(".setting-item:last-of-type .dropdown") as HTMLSelectElement | null;
+		if (dropdown3d) {
+			dropdown3d.addEventListener("change", updateRolodexVisibility);
+		}
+
+		rolodexSection.createEl("h3", {text: "Rolodex tuning"});
+
+		new Setting(rolodexSection)
+			.setName("Sharpness")
+			.setDesc("How quickly neighbors shrink (higher = sharper falloff)")
 			.addText(text => text
-				.setPlaceholder("0")
-				.setValue(String(this.plugin.settings.narrationInheritMinutes))
+				.setValue(String(this.plugin.settings.rolodexK))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num > 0) {
+						this.plugin.settings.rolodexK = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(rolodexSection)
+			.setName("Floor")
+			.setDesc("Minimum size for distant segments (lower = thinner slivers)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexFloor))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0) {
+						this.plugin.settings.rolodexFloor = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(rolodexSection)
+			.setName("Peak")
+			.setDesc("Extra size boost for the selected emotion (higher = bigger center)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexPeak))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0) {
+						this.plugin.settings.rolodexPeak = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(rolodexSection)
+			.setName("Snap strength")
+			.setDesc("How strongly the wheel homes to center after a flick (0 = no snap, 0.1 = strong)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexSnap))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0) {
+						this.plugin.settings.rolodexSnap = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(rolodexSection)
+			.setName("Resolution")
+			.setDesc("Lookup table size (higher = smoother transitions)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.rolodexResolution))
 				.onChange(async (value) => {
 					const num = parseInt(value, 10);
-					this.plugin.settings.narrationInheritMinutes = isNaN(num) ? 0 : Math.max(0, num);
-					await this.plugin.saveSettings();
+					if (!isNaN(num) && num >= 64) {
+						this.plugin.settings.rolodexResolution = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		// Physics tuning section
+		const physicsSection = containerEl.createDiv();
+		physicsSection.createEl("h3", {text: "Wheel physics"});
+
+		new Setting(physicsSection)
+			.setName("Snap strength")
+			.setDesc("How strongly the wheel homes to center after a flick (0 = no snap)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.feelingsWheelSnap))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num >= 0) {
+						this.plugin.settings.feelingsWheelSnap = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(physicsSection)
+			.setName("Inertia (friction)")
+			.setDesc("How quickly the wheel decelerates (0.8 = heavy, 0.98 = slippery)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.feelingsWheelFriction))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num > 0 && num < 1) {
+						this.plugin.settings.feelingsWheelFriction = num;
+						await this.plugin.saveSettings();
+					}
+				}));
+
+		new Setting(physicsSection)
+			.setName("Max speed")
+			.setDesc("Maximum spin velocity (lower = more controlled)")
+			.addText(text => text
+				.setValue(String(this.plugin.settings.feelingsWheelMaxSpeed))
+				.onChange(async (value) => {
+					const num = parseFloat(value);
+					if (!isNaN(num) && num > 0) {
+						this.plugin.settings.feelingsWheelMaxSpeed = num;
+						await this.plugin.saveSettings();
+					}
 				}));
 	}
 }

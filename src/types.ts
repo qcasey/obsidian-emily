@@ -47,6 +47,16 @@ export interface EmilySettings {
 	narrationInheritMinutes: number;
 	frequencySuggestEnabled: boolean;
 	defaultEnabledGroup: string;
+	feelingsWheelZoom: number;
+	feelingsWheel3d: "off" | "opacity" | "size";
+	rolodexK: number;
+	rolodexFloor: number;
+	rolodexPeak: number;
+	rolodexResolution: number;
+	feelingsWheelSnap: number;
+	feelingsWheelFriction: number;
+	feelingsWheelMaxSpeed: number;
+	rolodexSnap: number;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -59,6 +69,16 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	narrationInheritMinutes: 0,
 	frequencySuggestEnabled: true,
 	defaultEnabledGroup: "mood",
+	feelingsWheelZoom: 50,
+	feelingsWheel3d: "off",
+	rolodexK: 40,
+	rolodexFloor: 0.06,
+	rolodexPeak: 0.2,
+	rolodexResolution: 1024,
+	feelingsWheelSnap: 0.08,
+	feelingsWheelFriction: 0.92,
+	feelingsWheelMaxSpeed: 0.035,
+	rolodexSnap: 0.02,
 };
 
 export function hashTopicColor(name: string): string {

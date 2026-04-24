@@ -71,6 +71,20 @@ export default class EmilyPlugin extends Plugin {
 						editor.setCursor({line: cursor.line, ch: newCh});
 					},
 					() => { /* cancelled */ },
+					this.settings.feelingsWheelZoom,
+					this.settings.feelingsWheel3d,
+					{
+						k: this.settings.rolodexK,
+						floor: this.settings.rolodexFloor,
+						peak: this.settings.rolodexPeak,
+						resolution: this.settings.rolodexResolution,
+						snap: this.settings.rolodexSnap,
+					},
+					{
+						snap: this.settings.feelingsWheelSnap,
+						friction: this.settings.feelingsWheelFriction,
+						maxSpeed: this.settings.feelingsWheelMaxSpeed,
+					},
 				);
 				overlay.open();
 			},
