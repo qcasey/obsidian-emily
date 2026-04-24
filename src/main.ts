@@ -79,14 +79,12 @@ export default class EmilyPlugin extends Plugin {
 						peak: this.settings.rolodexPeak,
 						resolution: this.settings.rolodexResolution,
 						snap: this.settings.rolodexSnap,
-						sensitivity: this.settings.rolodexSensitivity,
+						fontScale: this.settings.rolodexFontScale,
 					},
 					{
 						snap: this.settings.feelingsWheelSnap,
 						friction: this.settings.feelingsWheelFriction,
-						maxSpeed: this.settings.feelingsWheelMaxSpeed,
 						reach: this.settings.feelingsWheelReach,
-						sensitivity: this.settings.feelingsWheelSensitivity,
 					},
 					this.settings.showWheelSettingsIcon
 						? () => {

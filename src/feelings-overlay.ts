@@ -18,8 +18,8 @@ export class FeelingsOverlay {
 		private onCancel: () => void,
 		private zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, sensitivity: 0.0015},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95, sensitivity: 0.003},
+		private rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5},
+		private physics = {snap: 0.08, friction: 0.92, reach: 0.95},
 		private onOpenSettings?: () => void,
 	) {
 		// Build color lookup

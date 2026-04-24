@@ -229,14 +229,14 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(rolodexSection)
-			.setName("Scroll sensitivity")
-			.setDesc(`Drag sensitivity in rolodex mode — lower = less sensitive (default: ${DEFAULT_SETTINGS.rolodexSensitivity})`)
+			.setName("Font scaling")
+			.setDesc(`How much text scales with segment size — 0 = uniform, 1 = fully proportional (default: ${DEFAULT_SETTINGS.rolodexFontScale})`)
 			.addText(text => text
-				.setValue(String(this.plugin.settings.rolodexSensitivity))
+				.setValue(String(this.plugin.settings.rolodexFontScale))
 				.onChange(async (value) => {
 					const num = parseFloat(value);
-					if (!isNaN(num) && num > 0) {
-						this.plugin.settings.rolodexSensitivity = num;
+					if (!isNaN(num) && num >= 0 && num <= 1) {
+						this.plugin.settings.rolodexFontScale = num;
 						await this.plugin.saveSettings();
 					}
 				}))
@@ -244,7 +244,7 @@ export class EmilySettingTab extends PluginSettingTab {
 				.setIcon("reset")
 				.setTooltip("Reset to default")
 				.onClick(async () => {
-					this.plugin.settings.rolodexSensitivity = DEFAULT_SETTINGS.rolodexSensitivity;
+					this.plugin.settings.rolodexFontScale = DEFAULT_SETTINGS.rolodexFontScale;
 					await this.plugin.saveSettings();
 					this.display();
 				}));
@@ -259,11 +259,9 @@ export class EmilySettingTab extends PluginSettingTab {
 			.addButton(btn => btn
 				.setButtonText("Reset")
 				.onClick(async () => {
-					this.plugin.settings.feelingsWheelSensitivity = DEFAULT_SETTINGS.feelingsWheelSensitivity;
 					this.plugin.settings.feelingsWheelReach = DEFAULT_SETTINGS.feelingsWheelReach;
 					this.plugin.settings.feelingsWheelSnap = DEFAULT_SETTINGS.feelingsWheelSnap;
 					this.plugin.settings.feelingsWheelFriction = DEFAULT_SETTINGS.feelingsWheelFriction;
-					this.plugin.settings.feelingsWheelMaxSpeed = DEFAULT_SETTINGS.feelingsWheelMaxSpeed;
 					await this.plugin.saveSettings();
 					this.display();
 				}));
@@ -295,10 +293,6 @@ export class EmilySettingTab extends PluginSettingTab {
 					}));
 		};
 
-		physicsSetting("Scroll sensitivity",
-			"How much the wheel rotates per pixel of drag — lower = less sensitive",
-			"feelingsWheelSensitivity", n => n > 0);
-
 		physicsSetting("Viewport reach",
 			"How far the wheel extends into the viewport — 0.5 = half, 0.8 = most of screen",
 			"feelingsWheelReach", n => n > 0 && n <= 1);
@@ -310,9 +304,5 @@ export class EmilySettingTab extends PluginSettingTab {
 		physicsSetting("Inertia (friction)",
 			"How quickly the wheel decelerates — 0.8 = heavy, 0.98 = slippery",
 			"feelingsWheelFriction", n => n > 0 && n < 1);
-
-		physicsSetting("Max speed",
-			"Maximum spin velocity — lower = more controlled",
-			"feelingsWheelMaxSpeed", n => n > 0);
 	}
 }

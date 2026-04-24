@@ -4,7 +4,7 @@
  */
 import {buildFlatSegments, type FlatSegment} from "./feelings-data";
 
-const DEFAULT_SENSITIVITY = 0.003;
+const SNAP_THRESHOLD = 0.02; // velocity below which snap-to-center kicks in
 const MIN_VELOCITY = 0.0002;
 const DRUM_ZOOM_BOOST = 0.85; // additional angular warp when 3D is on
 const DRUM_MIN_OPACITY = 0.1; // opacity at the far side of the drum
@@ -51,8 +51,8 @@ export class FeelingsWheel {
 		private onTapEmotion: (emotion: string) => void,
 		zoomPercent = 50,
 		private drum3d: "off" | "opacity" | "size" = "off",
-		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, sensitivity: 0.0015},
-		private physics = {snap: 0.08, friction: 0.92, maxSpeed: 0.035, reach: 0.95, sensitivity: DEFAULT_SENSITIVITY},
+		rolodex = {k: 60, floor: 0.1, peak: 300, resolution: 1024, snap: 0.02, fontScale: 0.5},
+		private physics = {snap: 0.08, friction: 0.92, reach: 0.95},
 		private onTapEmpty?: () => void,
 	) {
 		// Map 0-100 slider to 0-0.9 warp strength
@@ -62,7 +62,7 @@ export class FeelingsWheel {
 		this.rolodexPeak = rolodex.peak;
 		this.rolodexN = rolodex.resolution;
 		this.rolodexSnap = rolodex.snap;
-		this.rolodexSensitivity = rolodex.sensitivity;
+		this.rolodexFontScale = rolodex.fontScale;
 		const segments = buildFlatSegments();
 		this.coreSegments = segments.core;
 		this.secSegments = segments.secondary;
@@ -155,7 +155,7 @@ export class FeelingsWheel {
 	private rolodexPeak: number;
 	private rolodexN: number;
 	private rolodexSnap: number;
-	private rolodexSensitivity: number;
+	private rolodexFontScale: number;
 
 	/** Build lookup tables for size warp (called once in constructor) */
 	private buildSizeWarpTable(): void {
@@ -319,7 +319,7 @@ export class FeelingsWheel {
 			ctx.lineWidth = 1 * dpr;
 			ctx.stroke();
 
-			// Text — always at ring midline, uniform size
+			// Text — at ring midline, optionally scaled by warped arc size in rolodex mode
 			const tx = cx + Math.cos(midA) * ringMidR;
 			const ty = cy + Math.sin(midA) * ringMidR;
 
@@ -333,7 +333,15 @@ export class FeelingsWheel {
 			}
 			ctx.rotate(textAngle);
 
-			ctx.font = `600 ${fs}px -apple-system, BlinkMacSystemFont, sans-serif`;
+			let scaledFs = fs;
+			if (this.drum3d === "size" && this.rolodexFontScale > 0) {
+				const origArc = seg.endAngle - seg.startAngle;
+				const warpedArc = Math.abs(endA - startA);
+				const ratio = warpedArc / origArc;
+				scaledFs = fs * (1 + (ratio - 1) * this.rolodexFontScale);
+				scaledFs = Math.max(scaledFs, fs * 0.3); // floor at 30% of base
+			}
+			ctx.font = `600 ${scaledFs}px -apple-system, BlinkMacSystemFont, sans-serif`;
 			// letterSpacing is supported in modern browsers but not in the TS Canvas types yet
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(ctx as any).letterSpacing = `${0.3 * dpr}px`;
@@ -419,7 +427,7 @@ export class FeelingsWheel {
 
 		this.angle += deltaAngle;
 		this.totalDragDist += Math.abs(e.clientY - this.lastPointerY);
-		this.velocity = Math.max(-this.physics.maxSpeed, Math.min(this.physics.maxSpeed, deltaAngle / (dt / 16.67)));
+		this.velocity = deltaAngle / (dt / 16.67);
 		this.lastPointerAngle = angle;
 		this.lastPointerY = e.clientY;
 		this.lastPointerTime = now;
@@ -457,9 +465,9 @@ export class FeelingsWheel {
 
 			// As velocity drops, gently steer toward the nearest segment center
 			const speed = Math.abs(this.velocity);
-			if (speed < this.physics.maxSpeed * 0.5) {
+			if (speed < SNAP_THRESHOLD) {
 				const correction = this.getCenterCorrection();
-				const strength = 1 - (speed / (this.physics.maxSpeed * 0.5));
+				const strength = 1 - (speed / SNAP_THRESHOLD);
 				const snapForce = this.drum3d === "size" ? this.rolodexSnap : this.physics.snap;
 				this.velocity += correction * snapForce * strength;
 			}
