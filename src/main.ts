@@ -6,6 +6,7 @@ import {TrackingView, VIEW_TYPE_EMILY} from "./view";
 import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
+import {FeelingsOverlay} from "./feelings-overlay";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
@@ -52,6 +53,26 @@ export default class EmilyPlugin extends Plugin {
 				const newLine = cursor.line + insertedLines.length - 1;
 				const newCh = (insertedLines.length === 1 ? cursor.ch : 0) + lastLine.length;
 				editor.setCursor({line: newLine, ch: newCh});
+			},
+		});
+
+		this.addCommand({
+			id: "show-feelings-wheel",
+			name: "Show feelings wheel",
+			icon: "heart",
+			editorCallback: (editor: Editor) => {
+				const overlay = new FeelingsOverlay(
+					editor,
+					(emotions) => {
+						const text = emotions.join(", ");
+						const cursor = editor.getCursor();
+						editor.replaceRange(text, cursor);
+						const newCh = cursor.ch + text.length;
+						editor.setCursor({line: cursor.line, ch: newCh});
+					},
+					() => { /* cancelled */ },
+				);
+				overlay.open();
 			},
 		});
 

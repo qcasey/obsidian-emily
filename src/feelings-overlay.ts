@@ -1,0 +1,215 @@
+import type {Editor} from "obsidian";
+import {FeelingsWheel} from "./feelings-wheel";
+import {buildFlatSegments} from "./feelings-data";
+
+export class FeelingsOverlay {
+	private backdrop: HTMLElement;
+	private wheel: FeelingsWheel;
+	private closeBtn: HTMLElement;
+	private indicator: HTMLElement;
+	private pendingEmotions: string[] = [];
+	private emotionColors: Map<string, string> = new Map();
+	private pendingListEl: HTMLElement;
+	private pointedLabelEl: HTMLElement;
+	private doneBtn: HTMLElement;
+	private sidebar: HTMLElement;
+	private pointedUpdateId: number | null = null;
+
+	constructor(
+		private editor: Editor,
+		private onDone: (emotions: string[]) => void,
+		private onCancel: () => void,
+	) {
+		// Build color lookup
+		const segments = buildFlatSegments();
+		for (const seg of [...segments.core, ...segments.secondary, ...segments.tertiary]) {
+			this.emotionColors.set(seg.label, seg.color);
+		}
+
+		// Full-viewport backdrop — everything is a child of this
+		this.backdrop = document.createElement("div");
+		this.backdrop.className = "emily-feelings-backdrop";
+		this.backdrop.addEventListener("pointerdown", (e) => {
+			if (e.target === this.backdrop) {
+				e.preventDefault();
+				this.close();
+			}
+		});
+
+		// Close button
+		this.closeBtn = document.createElement("button");
+		this.closeBtn.className = "emily-feelings-close";
+		this.closeBtn.textContent = "\u00d7";
+		this.closeBtn.addEventListener("click", () => this.close());
+		this.backdrop.appendChild(this.closeBtn);
+
+		// Indicator arrow
+		this.indicator = document.createElement("div");
+		this.indicator.className = "emily-feelings-indicator";
+		this.backdrop.appendChild(this.indicator);
+
+		// Sidebar — bottom center, floating
+		this.sidebar = document.createElement("div");
+		this.sidebar.className = "emily-feelings-sidebar";
+		this.backdrop.appendChild(this.sidebar);
+
+		// Pending list — above the bottom row so no layout shift
+		this.pendingListEl = document.createElement("div");
+		this.pendingListEl.className = "emily-feelings-pending";
+		this.sidebar.appendChild(this.pendingListEl);
+
+		// Bottom row: pointed label + done button
+		const bottomRow = document.createElement("div");
+		bottomRow.className = "emily-feelings-bottom-row";
+
+		this.pointedLabelEl = document.createElement("div");
+		this.pointedLabelEl.className = "emily-feelings-pointed";
+		this.pointedLabelEl.textContent = "Spin the wheel!";
+		this.pointedLabelEl.addEventListener("click", () => {
+			const emotion = this.wheel.getPointedEmotion();
+			if (emotion) this.addEmotion(emotion);
+		});
+		bottomRow.appendChild(this.pointedLabelEl);
+
+		this.doneBtn = document.createElement("button");
+		this.doneBtn.className = "emily-feelings-done";
+		this.doneBtn.textContent = "Done";
+		this.doneBtn.addEventListener("click", () => {
+			if (this.pendingEmotions.length > 0) {
+				this.onDone(this.pendingEmotions);
+			}
+			this.remove();
+		});
+		bottomRow.appendChild(this.doneBtn);
+
+		this.sidebar.appendChild(bottomRow);
+
+		// Create wheel — renders directly into the backdrop
+		this.wheel = new FeelingsWheel(this.backdrop, (emotion) => {
+			this.addEmotion(emotion);
+		});
+
+		// Position arrow at the wheel's right edge
+		this.positionElements();
+		window.addEventListener("resize", this.boundResize = () => {
+			this.wheel.resize();
+			this.positionElements();
+		});
+
+		this.startPointedUpdate();
+	}
+
+	private boundResize: () => void;
+
+	private positionElements(): void {
+		const edgeX = this.wheel.getVisibleEdgeX();
+		// Arrow sits at the wheel's right edge, vertically centered
+		this.indicator.style.left = `${edgeX - 24}px`; // 24 = arrow width, so tip touches edge
+	}
+
+	private startPointedUpdate(): void {
+		const update = () => {
+			const emotion = this.wheel.getPointedEmotion();
+			if (emotion && this.pointedLabelEl.textContent !== emotion) {
+				this.pointedLabelEl.textContent = emotion;
+				this.pointedLabelEl.style.borderLeftColor = this.wheel.getPointedColor();
+			}
+			this.pointedUpdateId = requestAnimationFrame(update);
+		};
+		this.pointedUpdateId = requestAnimationFrame(update);
+	}
+
+	private addEmotion(emotion: string): void {
+		if (this.pendingEmotions.includes(emotion)) return;
+		this.pendingEmotions.push(emotion);
+		this.renderPending();
+		this.updateDoneColor();
+	}
+
+	private removeEmotion(emotion: string): void {
+		this.pendingEmotions = this.pendingEmotions.filter((e) => e !== emotion);
+		this.renderPending();
+		this.updateDoneColor();
+	}
+
+	private updateDoneColor(): void {
+		if (this.pendingEmotions.length === 0) {
+			this.doneBtn.style.setProperty("background", "rgba(255, 255, 255, 0.2)", "important");
+			this.doneBtn.style.setProperty("color", "rgba(255, 255, 255, 0.8)", "important");
+			this.doneBtn.textContent = "Done";
+			return;
+		}
+		this.doneBtn.style.setProperty("color", "#fff", "important");
+
+		let rSum = 0, gSum = 0, bSum = 0;
+		for (const emotion of this.pendingEmotions) {
+			const hex = this.emotionColors.get(emotion) || "#888888";
+			rSum += parseInt(hex.slice(1, 3), 16);
+			gSum += parseInt(hex.slice(3, 5), 16);
+			bSum += parseInt(hex.slice(5, 7), 16);
+		}
+		const n = this.pendingEmotions.length;
+		const r = Math.round(rSum / n * 0.75);
+		const g = Math.round(gSum / n * 0.75);
+		const b = Math.round(bSum / n * 0.75);
+		this.doneBtn.style.setProperty("background", `rgb(${r}, ${g}, ${b})`, "important");
+	}
+
+	private renderPending(): void {
+		this.pendingListEl.empty();
+		for (const emotion of this.pendingEmotions) {
+			const chip = document.createElement("span");
+			chip.className = "emily-feelings-chip";
+
+			// Color chip with the emotion's color (darkened for readability)
+			const hex = this.emotionColors.get(emotion) || "#888888";
+			const r = Math.round(parseInt(hex.slice(1, 3), 16) * 0.7);
+			const g = Math.round(parseInt(hex.slice(3, 5), 16) * 0.7);
+			const b = Math.round(parseInt(hex.slice(5, 7), 16) * 0.7);
+			chip.style.background = `rgb(${r}, ${g}, ${b})`;
+
+			chip.textContent = emotion;
+			const removeBtn = document.createElement("span");
+			removeBtn.className = "emily-feelings-chip-x";
+			removeBtn.textContent = "\u00d7";
+			removeBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.removeEmotion(emotion);
+			});
+			chip.appendChild(removeBtn);
+			this.pendingListEl.appendChild(chip);
+		}
+	}
+
+	open(): void {
+		document.body.appendChild(this.backdrop);
+
+		// Resize after DOM insertion so container has dimensions
+		requestAnimationFrame(() => {
+			this.wheel.resize();
+			this.positionElements();
+			this.backdrop.classList.add("emily-feelings-visible");
+			this.sidebar.classList.add("emily-feelings-open");
+		});
+	}
+
+	private close(): void {
+		this.onCancel();
+		this.sidebar.classList.remove("emily-feelings-open");
+		this.backdrop.classList.remove("emily-feelings-visible");
+
+		setTimeout(() => this.remove(), 300);
+	}
+
+	private removed = false;
+	private remove(): void {
+		if (this.removed) return;
+		this.removed = true;
+		if (this.pointedUpdateId !== null) {
+			cancelAnimationFrame(this.pointedUpdateId);
+		}
+		window.removeEventListener("resize", this.boundResize);
+		this.wheel.destroy();
+		this.backdrop.remove();
+	}
+}
