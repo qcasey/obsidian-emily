@@ -70,6 +70,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Highlight feelings in editor")
+			.setDesc("Underline emotions inside {} with a colored line matching their position on the feelings wheel")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.feelingsHighlight)
+				.onChange(async (value) => {
+					this.plugin.settings.feelingsHighlight = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text

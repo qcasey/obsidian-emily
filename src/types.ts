@@ -62,6 +62,7 @@ export interface EmilySettings {
 	rolodexFontCeiling: number;
 	rolodexWeightScale: number;
 	showWheelSettingsIcon: boolean;
+	feelingsHighlight: boolean;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -89,6 +90,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	rolodexFontCeiling: 0.8,
 	rolodexWeightScale: 0.5,
 	showWheelSettingsIcon: true,
+	feelingsHighlight: true,
 };
 
 export function hashTopicColor(name: string): string {

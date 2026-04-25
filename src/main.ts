@@ -7,6 +7,7 @@ import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
 import {FeelingsOverlay} from "./feelings-overlay";
+import {feelingsHighlightPlugin} from "./feelings-highlight";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
@@ -15,6 +16,10 @@ export default class EmilyPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.registerView(VIEW_TYPE_EMILY, (leaf) => new TrackingView(leaf, this));
+
+		this.registerEditorExtension(
+			feelingsHighlightPlugin(() => this.settings.feelingsHighlight),
+		);
 
 		this.addRibbonIcon("line-chart", "Open Emily tracker", () => {
 			this.activateView();
