@@ -107,6 +107,47 @@ export default class EmilyPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "select-log-line",
+			name: "Select log line",
+			icon: "text-select",
+			editorCallback: (editor: Editor) => {
+				const timeRe = /\d{2}:\d{2}/;
+				const cursorLine = editor.getCursor().line;
+				const lineCount = editor.lineCount();
+
+				// Search upward (inclusive) for the first timestamp
+				let startLine = -1;
+				for (let i = cursorLine; i >= 0; i--) {
+					if (timeRe.test(editor.getLine(i))) {
+						startLine = i;
+						break;
+					}
+				}
+				if (startLine === -1) return;
+
+				// Search forward from the line after startLine for the next timestamp
+				let endLine = lineCount - 1;
+				for (let i = startLine + 1; i < lineCount; i++) {
+					if (timeRe.test(editor.getLine(i))) {
+						endLine = i - 1;
+						break;
+					}
+				}
+
+				// Trim trailing empty lines
+				while (endLine > startLine && editor.getLine(endLine).trim() === "") {
+					endLine--;
+				}
+
+				const lastLineText = editor.getLine(endLine);
+				editor.setSelection(
+					{line: startLine, ch: 0},
+					{line: endLine, ch: lastLineText.length},
+				);
+			},
+		});
+
+		this.addCommand({
 			id: "export-csv",
 			name: "Export current view as CSV",
 			checkCallback: (checking) => {
