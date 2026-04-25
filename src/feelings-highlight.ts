@@ -46,7 +46,7 @@ function buildDecorations(view: EditorView): DecorationSet {
 
 				const deco = Decoration.mark({
 					attributes: {
-						style: `text-decoration: underline; text-decoration-color: ${color}; text-decoration-thickness: 4px; text-underline-offset: 2px;`,
+						style: `color: ${color};`,
 						class: "emily-feeling-hl",
 					},
 				});
