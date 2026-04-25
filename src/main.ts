@@ -40,6 +40,20 @@ export default class EmilyPlugin extends Plugin {
 				const currentLine = editor.getLine(cursor.line);
 				const prevLine = cursor.line > 0 ? editor.getLine(cursor.line - 1) : "";
 
+				const now = new Date();
+				const hh = String(now.getHours()).padStart(2, "0");
+				const mm = String(now.getMinutes()).padStart(2, "0");
+				const stamp = `${hh}:${mm} [[`;
+
+				// If current line is just a bare timestamp (e.g. "08:36 "), replace it
+				if (/^\d{2}:\d{2}\s*$/.test(currentLine)) {
+					const from = {line: cursor.line, ch: 0};
+					const to = {line: cursor.line, ch: currentLine.length};
+					editor.replaceRange(stamp, from, to);
+					editor.setCursor({line: cursor.line, ch: stamp.length});
+					return;
+				}
+
 				let prefix = "";
 				if (currentLine.trim() !== "") {
 					prefix = "\n\n";
@@ -47,10 +61,7 @@ export default class EmilyPlugin extends Plugin {
 					prefix = "\n";
 				}
 
-				const now = new Date();
-				const hh = String(now.getHours()).padStart(2, "0");
-				const mm = String(now.getMinutes()).padStart(2, "0");
-				const text = `${prefix}${hh}:${mm} [[`;
+				const text = `${prefix}${stamp}`;
 
 				editor.replaceRange(text, cursor);
 				const insertedLines = text.split("\n");
