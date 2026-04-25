@@ -65,8 +65,12 @@ export default class EmilyPlugin extends Plugin {
 					editor,
 					(emotions) => {
 						const joined = emotions.join(", ");
-						const text = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
+						const raw = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
 						const cursor = editor.getCursor();
+						const line = editor.getLine(cursor.line);
+						const charBefore = cursor.ch > 0 ? line[cursor.ch - 1] : undefined;
+						const needsSpace = charBefore !== undefined && charBefore !== " " && charBefore !== "\t";
+						const text = needsSpace ? ` ${raw}` : raw;
 						editor.replaceRange(text, cursor);
 						const newCh = cursor.ch + text.length;
 						editor.setCursor({line: cursor.line, ch: newCh});
