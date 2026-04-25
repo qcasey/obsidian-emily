@@ -41,7 +41,7 @@ export const FEELINGS_WHEEL: EmotionSector[] = [
 			{label: "Calm", tertiary: ["Settled", "Relieved"]},
 			{label: "Safe", tertiary: ["Secure", "Held"]},
 			{label: "Resigned", tertiary: ["Deflated", "Surrendered"]},
-			{label: "Ambivalent", tertiary: ["Torn", "Conflicted"]},
+			{label: "Ambivalent", tertiary: ["Uncertain", "Conflicted"]},
 			{label: "Wistful", tertiary: ["Nostalgic", "Bittersweet"]},
 			{label: "Restless", tertiary: ["Antsy", "Unsettled"]},
 		],
