@@ -44,6 +44,7 @@ export interface EmilySettings {
 	logSectionHeading: string;
 	autoEmbed: boolean;
 	autoEmbedTopics: string;
+	insertBetweenBraces: boolean;
 	narrationInheritMinutes: number;
 	frequencySuggestEnabled: boolean;
 	defaultEnabledGroup: string;
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	logSectionHeading: "Log",
 	autoEmbed: true,
 	autoEmbedTopics: "",
+	insertBetweenBraces: true,
 	narrationInheritMinutes: 0,
 	frequencySuggestEnabled: true,
 	defaultEnabledGroup: "mood",

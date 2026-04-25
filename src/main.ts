@@ -64,7 +64,8 @@ export default class EmilyPlugin extends Plugin {
 				const overlay = new FeelingsOverlay(
 					editor,
 					(emotions) => {
-						const text = emotions.join(", ");
+						const joined = emotions.join(", ");
+						const text = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
 						const cursor = editor.getCursor();
 						editor.replaceRange(text, cursor);
 						const newCh = cursor.ch + text.length;

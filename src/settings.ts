@@ -60,6 +60,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Insert between {}")
+			.setDesc("Wrap inserted emotions in curly braces, e.g. {Energetic, Interested}")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.insertBetweenBraces)
+				.onChange(async (value) => {
+					this.plugin.settings.insertBetweenBraces = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text
