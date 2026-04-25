@@ -1,7 +1,7 @@
 {
 	"id": "emily",
 	"name": "Emily",
-	"version": "1.6.0",
+	"version": "1.6.1",
 	"minAppVersion": "0.15.0",
 	"description": "Mood and topic tracking visualization for daily notes.",
 	"author": "Casey",
