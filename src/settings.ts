@@ -113,6 +113,38 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Infinite journal")
+			.setDesc("Enable the infinite-scrolling journal view of daily notes")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.infiniteJournal)
+				.onChange(async (value) => {
+					this.plugin.settings.infiniteJournal = value;
+					await this.plugin.saveSettings();
+					this.plugin.updateJournalRibbon();
+				}));
+
+		new Setting(containerEl)
+			.setName("Show relative dates")
+			.setDesc("Show journal day headers as Today, Yesterday, Last Friday, etc. instead of the raw date")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.journalRelativeDates)
+				.onChange(async (value) => {
+					this.plugin.settings.journalRelativeDates = value;
+					await this.plugin.saveSettings();
+					this.plugin.refreshJournalViews();
+				}));
+
+		new Setting(containerEl)
+			.setName("Replace daily note")
+			.setDesc("Open the infinite journal (scrolled to today) instead of a single note when using the Open today's daily note command")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.journalReplaceDailyNote)
+				.onChange(async (value) => {
+					this.plugin.settings.journalReplaceDailyNote = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Frequency-sorted link suggest")
 			.setDesc("Show link suggestions sorted by usage frequency after inserting a timestamp")
 			.addToggle(toggle => toggle

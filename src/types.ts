@@ -63,6 +63,9 @@ export interface EmilySettings {
 	rolodexWeightScale: number;
 	showWheelSettingsIcon: boolean;
 	feelingsHighlight: boolean;
+	infiniteJournal: boolean;
+	journalRelativeDates: boolean;
+	journalReplaceDailyNote: boolean;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -91,6 +94,9 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	rolodexWeightScale: 0.5,
 	showWheelSettingsIcon: true,
 	feelingsHighlight: true,
+	infiniteJournal: true,
+	journalRelativeDates: true,
+	journalReplaceDailyNote: true,
 };
 
 export function hashTopicColor(name: string): string {

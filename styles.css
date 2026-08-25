@@ -706,3 +706,126 @@
 	filter: brightness(0.9) !important;
 	transform: scale(0.96);
 }
+
+/* ===== Infinite journal ===== */
+
+.emily-journal-view {
+	/* Must beat theme padding on .view-content: any top padding on the scroll
+	   container makes sticky headers pin below the visual top, with content
+	   showing through the gap */
+	padding: 0 !important;
+	overflow-y: auto;
+	/* Deterministic scroll compensation when prepending days */
+	overflow-anchor: none;
+}
+
+.emily-journal-days {
+	max-width: var(--file-line-width, 44em);
+	margin: 0 auto;
+	padding: 24px 24px 48px;
+}
+
+.emily-journal-day {
+	min-height: 90px;
+	/* No top padding: the sticky header must be flush with the section top,
+	   otherwise the previous day's content peeks through the gap */
+	padding: 0 0 24px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Floating header: sticks to the top of the view while its day is on screen,
+   then gets pushed off by the next day's header */
+.emily-journal-header {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 6px;
+	padding: 12px 0 8px;
+	background: var(--background-primary);
+}
+
+.emily-journal-title {
+	font-family: var(--h1-font, var(--font-text, inherit));
+	font-size: calc(var(--h1-size, 2em) * 1.2);
+	font-weight: 800;
+	font-style: var(--h1-style, normal);
+	font-variant: var(--h1-variant, normal);
+	line-height: var(--h1-line-height, 1.2);
+	color: var(--text-normal);
+}
+
+.emily-journal-subtitle {
+	font-size: 0.85em;
+	color: var(--text-faint);
+}
+
+.emily-journal-today .emily-journal-title {
+	color: var(--interactive-accent);
+}
+
+/* Missing days: grayed out, click to create */
+.emily-journal-missing .emily-journal-title {
+	color: var(--text-faint);
+}
+
+.emily-journal-missing .emily-journal-header,
+.emily-journal-placeholder {
+	cursor: pointer;
+}
+
+.emily-journal-placeholder {
+	min-height: 48px;
+	border-radius: 6px;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+}
+
+.emily-journal-placeholder::after {
+	content: "Start writing\2026";
+	color: var(--text-faint);
+	font-size: 0.9em;
+	opacity: 0;
+	transition: opacity 0.15s ease;
+}
+
+.emily-journal-day.emily-journal-missing:hover .emily-journal-placeholder {
+	background: var(--background-modifier-hover);
+}
+
+.emily-journal-day.emily-journal-missing:hover .emily-journal-placeholder::after {
+	opacity: 1;
+}
+
+/* Hide the note's own inline title and properties — the day header replaces them */
+.emily-journal-content .inline-title,
+.emily-journal-content .metadata-container,
+.emily-journal-content .metadata-properties-heading,
+.emily-journal-content .frontmatter-container,
+.emily-journal-content .frontmatter {
+	display: none !important;
+}
+
+/* Strip the embed chrome so each day reads as part of one continuous page */
+.emily-journal-content > .markdown-embed,
+.emily-journal-content > .internal-embed {
+	border: none;
+	padding: 0;
+	margin: 0;
+	background: transparent;
+}
+
+.emily-journal-content .markdown-embed-content {
+	max-height: none;
+}
+
+.emily-journal-content .markdown-embed-link {
+	display: none;
+}
+
+.emily-journal-content .markdown-source-view.mod-cm6 .cm-editor {
+	background: transparent;
+}

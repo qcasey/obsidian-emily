@@ -3,6 +3,7 @@ import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
 import {EmilySettingTab} from "./settings";
 import {TrackingView, VIEW_TYPE_EMILY} from "./view";
+import {JournalView, VIEW_TYPE_JOURNAL} from "./journal-view";
 import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
@@ -11,11 +12,14 @@ import {feelingsHighlightPlugin} from "./feelings-highlight";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
+	private journalRibbonEl: HTMLElement | null = null;
+	private originalDailyNotesCallback: (() => unknown) | null = null;
 
 	async onload() {
 		await this.loadSettings();
 
 		this.registerView(VIEW_TYPE_EMILY, (leaf) => new TrackingView(leaf, this));
+		this.registerView(VIEW_TYPE_JOURNAL, (leaf) => new JournalView(leaf, this));
 
 		this.registerEditorExtension(
 			feelingsHighlightPlugin(() => this.settings.feelingsHighlight),
@@ -25,10 +29,23 @@ export default class EmilyPlugin extends Plugin {
 			this.activateView();
 		});
 
+		this.updateJournalRibbon();
+
 		this.addCommand({
 			id: "open-tracking-chart",
 			name: "Open tracking chart",
 			callback: () => this.activateView(),
+		});
+
+		this.addCommand({
+			id: "open-infinite-journal",
+			name: "Open infinite journal",
+			icon: "book-open",
+			checkCallback: (checking) => {
+				if (!this.settings.infiniteJournal) return false;
+				if (!checking) void this.activateJournalView();
+				return true;
+			},
 		});
 
 		this.addCommand({
@@ -184,6 +201,7 @@ export default class EmilyPlugin extends Plugin {
 		// Patch after layout is ready so the native suggest is registered
 		this.app.workspace.onLayoutReady(() => {
 			freqSort.patchNativeSuggest();
+			this.patchDailyNotesCommand();
 		});
 		this.registerEvent(
 			this.app.metadataCache.on("resolved", () => {
@@ -232,6 +250,71 @@ export default class EmilyPlugin extends Plugin {
 		const container = contentEl.createEl("div", {cls: "emily-auto-embed emily-embed"});
 		container.style.position = "relative";
 		renderEmbed(`days: 1\n${topics}\nlegend: true`, container, this.app, this.settings);
+	}
+
+	onunload() {
+		// Restore the core daily-notes command callback
+		if (this.originalDailyNotesCallback) {
+			const cmd = this.getDailyNotesCommand();
+			if (cmd) cmd.callback = this.originalDailyNotesCallback;
+			this.originalDailyNotesCallback = null;
+		}
+	}
+
+	private getDailyNotesCommand(): {callback?: () => unknown} | undefined {
+		const internals = this.app as unknown as {
+			commands?: {commands?: Record<string, {callback?: () => unknown} | undefined>};
+		};
+		return internals.commands?.commands?.["daily-notes"];
+	}
+
+	/**
+	 * Wrap the core "Open today's daily note" command so it opens the
+	 * infinite journal instead when that setting is enabled. The wrapper
+	 * checks settings at call time, so toggling needs no re-patch.
+	 */
+	private patchDailyNotesCommand(): void {
+		const cmd = this.getDailyNotesCommand();
+		if (!cmd?.callback || this.originalDailyNotesCallback) return;
+		this.originalDailyNotesCallback = cmd.callback;
+		cmd.callback = () => {
+			if (this.settings.infiniteJournal && this.settings.journalReplaceDailyNote) {
+				void this.activateJournalView();
+			} else {
+				this.originalDailyNotesCallback?.();
+			}
+		};
+	}
+
+	updateJournalRibbon(): void {
+		if (this.settings.infiniteJournal && !this.journalRibbonEl) {
+			this.journalRibbonEl = this.addRibbonIcon("book-open", "Open infinite journal", () => {
+				void this.activateJournalView();
+			});
+		} else if (!this.settings.infiniteJournal && this.journalRibbonEl) {
+			this.journalRibbonEl.remove();
+			this.journalRibbonEl = null;
+		}
+	}
+
+	refreshJournalViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_JOURNAL)) {
+			(leaf.view as JournalView).refreshHeaders();
+		}
+	}
+
+	async activateJournalView() {
+		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_JOURNAL);
+		if (existing.length > 0) {
+			const leaf = existing[0] as WorkspaceLeaf;
+			await this.app.workspace.revealLeaf(leaf);
+			(leaf.view as JournalView).scrollToToday();
+			return;
+		}
+
+		const leaf = this.app.workspace.getLeaf("tab");
+		await leaf.setViewState({type: VIEW_TYPE_JOURNAL, active: true});
+		await this.app.workspace.revealLeaf(leaf);
 	}
 
 	async activateView() {

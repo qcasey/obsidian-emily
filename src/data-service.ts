@@ -2,6 +2,7 @@ import {App, TFile, moment} from "obsidian";
 import type {DateRange, EmilySettings, ResolvedTopic, TopicConfig, TrackingEntry} from "./types";
 import {DEFAULT_SCALE_MAX, hashTopicColor} from "./types";
 import {parseLogEntries} from "./parser";
+import {getDailyNotesConfig} from "./daily-notes";
 
 export class DataService {
 	constructor(
@@ -10,7 +11,7 @@ export class DataService {
 	) {}
 
 	isDailyNote(filePath: string): boolean {
-		const {folder, format} = this.getDailyNotesConfig();
+		const {folder, format} = getDailyNotesConfig(this.app, this.settings);
 		let datePart: string;
 		if (folder) {
 			if (!filePath.startsWith(folder + "/")) return false;
@@ -57,7 +58,7 @@ export class DataService {
 	}
 
 	private async collectEntries(range: DateRange | null): Promise<TrackingEntry[]> {
-		const {folder, format} = this.getDailyNotesConfig();
+		const {folder, format} = getDailyNotesConfig(this.app, this.settings);
 		const allFiles = this.app.vault.getMarkdownFiles();
 		const entries: TrackingEntry[] = [];
 
@@ -159,37 +160,6 @@ export class DataService {
 				: fm["tracking_group"] ? [String(fm["tracking_group"])] : [],
 			aggregate: (fm["tracking_aggregate"] === "sum" || fm["tracking_aggregate"] === "average") ? fm["tracking_aggregate"] : "none",
 			heatmapGradient: fm["tracking_heatmap_gradient"] !== false,
-		};
-	}
-
-	private getDailyNotesConfig(): {folder: string; format: string} {
-		// Try core Daily Notes plugin
-		const dailyNotes = (this.app as any).internalPlugins?.getPluginById?.("daily-notes");
-		if (dailyNotes?.enabled) {
-			const opts = dailyNotes.instance?.options;
-			if (opts) {
-				return {
-					folder: opts.folder || this.settings.dailyNotesFolder,
-					format: opts.format || this.settings.dailyNotesFormat,
-				};
-			}
-		}
-
-		// Try Periodic Notes community plugin
-		const periodic = (this.app as any).plugins?.getPlugin?.("periodic-notes");
-		if (periodic) {
-			const dailyConfig = periodic.settings?.daily;
-			if (dailyConfig) {
-				return {
-					folder: dailyConfig.folder || this.settings.dailyNotesFolder,
-					format: dailyConfig.format || this.settings.dailyNotesFormat,
-				};
-			}
-		}
-
-		return {
-			folder: this.settings.dailyNotesFolder,
-			format: this.settings.dailyNotesFormat,
 		};
 	}
 }
