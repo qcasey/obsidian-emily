@@ -14,6 +14,10 @@ const INITIAL_PAST_DAYS = 4;
 const INITIAL_FUTURE_DAYS = 3;
 const BATCH_DAYS = 7;
 const SCROLL_THRESHOLD = 300;
+/** How long to keep today pinned while the embedded editors settle. */
+const SETTLE_TIMEOUT = 3000;
+/** Reader input that ends that pin early. */
+const HANDOFF_EVENTS = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 
 /** Minimal shape of Obsidian's internal editable markdown embed (WidgetEditorView). */
 interface EmbeddedEditor extends Component {
@@ -61,6 +65,7 @@ export class JournalView extends ItemView {
 	private lastDate: Moment;
 	private extending = false;
 	private todayKey: string;
+	private settleStop: (() => void) | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: EmilyPlugin) {
 		super(leaf);
@@ -87,9 +92,10 @@ export class JournalView extends ItemView {
 
 		this.daysEl = contentEl.createEl("div", {cls: "emily-journal-days"});
 
-		await this.resetAroundToday(false);
+		await this.resetAroundToday();
 
 		this.registerDomEvent(contentEl, "scroll", () => this.onScroll());
+		this.register(() => this.settleStop?.());
 
 		this.registerEvent(this.app.vault.on("create", (file) => this.handlePathChange(file.path)));
 		this.registerEvent(this.app.vault.on("delete", (file) => this.handlePathChange(file.path)));
@@ -119,17 +125,59 @@ export class JournalView extends ItemView {
 		}
 	}
 
-	public scrollToToday(smooth = true): void {
-		const section = this.sections.find(s => s.dateKey === this.todayKey);
-		if (!section) {
+	public scrollToToday(): void {
+		if (this.todayScrollTop() === null) {
 			// Window drifted away from today; rebuild around it
-			void this.resetAroundToday(false);
+			void this.resetAroundToday();
 			return;
 		}
-		section.el.scrollIntoView({behavior: smooth ? "smooth" : "auto", block: "start"});
+		this.settleOnToday();
 	}
 
-	private async resetAroundToday(smooth: boolean): Promise<void> {
+	/**
+	 * Scroll offset that puts today's section at the top of the view, or null if
+	 * today isn't in the current window. Measured rather than read from
+	 * `offsetTop`, which is relative to whichever ancestor happens to be
+	 * positioned.
+	 */
+	private todayScrollTop(): number | null {
+		const section = this.sections.find(s => s.dateKey === this.todayKey);
+		if (!section) return null;
+		const el = this.contentEl;
+		return el.scrollTop + section.el.getBoundingClientRect().top - el.getBoundingClientRect().top;
+	}
+
+	/**
+	 * Embedded editors only measure themselves once they are scrolled into view,
+	 * so days above today keep changing height and push it back out of place.
+	 * Hold the scroll on today until the heights stop moving, or until the reader
+	 * takes over.
+	 */
+	private settleOnToday(): void {
+		this.settleStop?.();
+
+		const el = this.contentEl;
+		const pin = () => {
+			const top = this.todayScrollTop();
+			if (top !== null) el.scrollTop = top;
+		};
+		pin();
+
+		const stop = () => {
+			if (this.settleStop !== stop) return;
+			this.settleStop = null;
+			observer.disconnect();
+			window.clearTimeout(timer);
+			for (const event of HANDOFF_EVENTS) el.removeEventListener(event, stop);
+		};
+		const observer = new ResizeObserver(() => pin());
+		observer.observe(this.daysEl);
+		const timer = window.setTimeout(stop, SETTLE_TIMEOUT);
+		for (const event of HANDOFF_EVENTS) el.addEventListener(event, stop, {passive: true});
+		this.settleStop = stop;
+	}
+
+	private async resetAroundToday(): Promise<void> {
 		this.extending = true;
 		try {
 			this.clearSections();
@@ -151,7 +199,7 @@ export class JournalView extends ItemView {
 		} finally {
 			this.extending = false;
 		}
-		this.scrollToToday(smooth);
+		this.settleOnToday();
 	}
 
 	private clearSections(): void {
@@ -234,14 +282,22 @@ export class JournalView extends ItemView {
 		el.dataset.date = dateKey;
 
 		const header = el.createEl("div", {cls: "emily-journal-header"});
-		const titleEl = header.createEl("span", {cls: "emily-journal-title"});
-		const subtitleEl = header.createEl("span", {cls: "emily-journal-subtitle"});
+		const titleEl = header.createEl("div", {cls: "emily-journal-title"});
+		const metaEl = header.createEl("div", {cls: "emily-journal-meta"});
+		const subtitleEl = metaEl.createEl("span", {cls: "emily-journal-subtitle"});
+		const jumpEl = metaEl.createEl("a", {cls: "emily-journal-jump", text: "Jump to today"});
 		const contentEl = el.createEl("div", {cls: "emily-journal-content"});
 
 		const section: DaySection = {dateKey, el, titleEl, subtitleEl, contentEl, file: null, component: null, creating: false};
 
 		header.addEventListener("click", () => {
 			if (!section.file) void this.createNote(section);
+		});
+
+		jumpEl.addEventListener("click", (evt) => {
+			// Don't let the header's create-note handler see this
+			evt.stopPropagation();
+			this.scrollToToday();
 		});
 
 		this.applyHeader(section);

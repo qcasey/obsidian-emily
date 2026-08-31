@@ -739,12 +739,17 @@
 	position: sticky;
 	top: 0;
 	z-index: 10;
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
 	margin-bottom: 6px;
 	padding: 12px 0 8px;
 	background: var(--background-primary);
+}
+
+/* Date and jump link sit on their own line so the title gets the full width */
+.emily-journal-meta {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	font-size: 0.85em;
 }
 
 .emily-journal-title {
@@ -763,10 +768,36 @@
 }
 
 .emily-journal-subtitle {
-	font-size: 0.85em;
 	color: var(--text-faint);
 	white-space: nowrap;
 	flex-shrink: 0;
+}
+
+.emily-journal-jump {
+	color: var(--text-faint);
+	text-decoration: none;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.emily-journal-jump::before {
+	content: "·";
+	margin-right: 10px;
+}
+
+/* No separator when the date is hidden (relative dates off) */
+.emily-journal-subtitle:empty + .emily-journal-jump::before {
+	content: none;
+}
+
+.emily-journal-jump:hover {
+	color: var(--text-accent);
+	text-decoration: underline;
+}
+
+/* Nothing to jump to from today itself */
+.emily-journal-today .emily-journal-jump {
+	display: none;
 }
 
 .emily-journal-today .emily-journal-title {
@@ -861,11 +892,8 @@
 	z-index: 15;
 }
 
-/* Keep the day title clear of the floating action buttons in the same row */
-.is-phone .emily-journal-header {
-	padding-right: 88px;
-}
-
+/* Only the title shares its row with the floating action buttons */
 .is-phone .emily-journal-title {
 	font-size: var(--h1-size, 2em);
+	padding-right: 88px;
 }
