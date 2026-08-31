@@ -755,11 +755,18 @@
 	font-variant: var(--h1-variant, normal);
 	line-height: var(--h1-line-height, 1.2);
 	color: var(--text-normal);
+	/* The header is sticky, so it has to stay one line tall */
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .emily-journal-subtitle {
 	font-size: 0.85em;
 	color: var(--text-faint);
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .emily-journal-today .emily-journal-title {
@@ -828,4 +835,37 @@
 
 .emily-journal-content .markdown-source-view.mod-cm6 .cm-editor {
 	background: transparent;
+}
+
+/* On phones Obsidian pads the top of an editor inside a view so the note clears
+   the floating header (--view-top-spacing-markdown, ~150px with a notch). Each
+   day mounts its own editor, so that becomes a blank block under every day
+   header — beat the built-in rule's 7-class specificity. */
+.emily-journal-content .markdown-source-view > .cm-editor > .cm-scroller {
+	padding-top: 0 !important;
+}
+
+/* Phone: the view header is already fixed and transparent, holding only a static
+   "Journal" label over a screen of date headers. Drop the label and pull the
+   content up so the sticky day header pins in that row instead. */
+.is-phone .workspace-leaf-content[data-type="emily-journal"] .view-header-title-container {
+	display: none;
+}
+
+.is-phone .workspace-leaf-content[data-type="emily-journal"] .view-content {
+	margin-top: var(--safe-area-inset-top, 0px) !important;
+}
+
+/* The day headers now scroll through this row, so keep the buttons above them */
+.is-phone .workspace-leaf-content[data-type="emily-journal"] .view-header {
+	z-index: 15;
+}
+
+/* Keep the day title clear of the floating action buttons in the same row */
+.is-phone .emily-journal-header {
+	padding-right: 88px;
+}
+
+.is-phone .emily-journal-title {
+	font-size: var(--h1-size, 2em);
 }
