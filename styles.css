@@ -914,3 +914,8 @@ body.emily-timestamp-mono .cm-line .emily-timestamp {
 	font-family: var(--font-monospace);
 	font-variant-numeric: tabular-nums;
 }
+
+/* Muted timestamps: toggled by the "Muted timestamps" setting. */
+body.emily-timestamp-muted .cm-line .emily-timestamp {
+	color: var(--text-muted);
+}

@@ -102,6 +102,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Muted timestamps")
+			.setDesc("Render the HH:MM at the start of journal lines in the muted text color so entries stand out")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.timestampMuted)
+				.onChange(async (value) => {
+					this.plugin.settings.timestampMuted = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text

@@ -261,6 +261,7 @@ export default class EmilyPlugin extends Plugin {
 	onunload() {
 		document.body.style.removeProperty("--emily-timestamp-gap");
 		document.body.removeClass("emily-timestamp-mono");
+		document.body.removeClass("emily-timestamp-muted");
 		// Restore the core daily-notes command callback
 		if (this.originalDailyNotesCallback) {
 			const cmd = this.getDailyNotesCommand();
@@ -351,5 +352,6 @@ export default class EmilyPlugin extends Plugin {
 		const gap = Math.max(0, this.settings.timestampLineGap || 0);
 		document.body.style.setProperty("--emily-timestamp-gap", `${gap}em`);
 		document.body.toggleClass("emily-timestamp-mono", this.settings.timestampMonospace);
+		document.body.toggleClass("emily-timestamp-muted", this.settings.timestampMuted);
 	}
 }

@@ -67,6 +67,8 @@ export interface EmilySettings {
 	timestampLineGap: number;
 	/** Render the HH:MM timestamp at the start of journal lines in a monospace font. */
 	timestampMonospace: boolean;
+	/** Render the HH:MM timestamp in the muted text color. */
+	timestampMuted: boolean;
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
@@ -100,6 +102,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	feelingsHighlight: true,
 	timestampLineGap: 0.75,
 	timestampMonospace: true,
+	timestampMuted: false,
 	infiniteJournal: true,
 	journalRelativeDates: true,
 	journalReplaceDailyNote: true,
