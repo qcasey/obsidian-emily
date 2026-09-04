@@ -9,6 +9,7 @@ import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
 import {FeelingsOverlay} from "./feelings-overlay";
 import {feelingsHighlightPlugin} from "./feelings-highlight";
+import {timestampLinesPlugin} from "./timestamp-lines";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
@@ -23,6 +24,9 @@ export default class EmilyPlugin extends Plugin {
 
 		this.registerEditorExtension(
 			feelingsHighlightPlugin(() => this.settings.feelingsHighlight),
+		);
+		this.registerEditorExtension(
+			timestampLinesPlugin(() => this.settings.dailyNotesFolder),
 		);
 
 		this.addRibbonIcon("line-chart", "Open Emily tracker", () => {
