@@ -897,3 +897,13 @@
 	font-size: var(--h1-size, 2em);
 	padding-right: 88px;
 }
+
+/* Journal entry spacing: lines starting with a timestamp in daily notes get
+   extra padding, controlled by the "Journal entry spacing" setting via
+   --emily-timestamp-gap. Selectors include .markdown-source-view.mod-cm6 to
+   outrank Obsidian's own `.markdown-source-view.mod-cm6 .cm-line { padding: 0 }`. */
+.markdown-source-view.mod-cm6 .cm-line.emily-timestamp-line,
+.cm-editor .cm-line.emily-timestamp-line {
+	padding-top: var(--emily-timestamp-gap, 0);
+	padding-bottom: var(--emily-timestamp-gap, 0);
+}

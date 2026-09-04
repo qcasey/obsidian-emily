@@ -80,6 +80,18 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Journal entry spacing")
+			.setDesc("Extra space (in em) above and below lines that start with a timestamp in daily notes, so blank lines between entries aren't needed (0 = off)")
+			.addSlider(slider => slider
+				.setLimits(0, 2, 0.05)
+				.setValue(this.plugin.settings.timestampLineGap)
+				.setDynamicTooltip()
+				.onChange(async (value) => {
+					this.plugin.settings.timestampLineGap = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text

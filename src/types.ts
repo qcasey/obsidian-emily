@@ -63,6 +63,8 @@ export interface EmilySettings {
 	rolodexWeightScale: number;
 	showWheelSettingsIcon: boolean;
 	feelingsHighlight: boolean;
+	/** Extra vertical padding (em) above and below timestamped journal lines. */
+	timestampLineGap: number;
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
@@ -94,6 +96,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	rolodexWeightScale: 0.5,
 	showWheelSettingsIcon: true,
 	feelingsHighlight: true,
+	timestampLineGap: 0.75,
 	infiniteJournal: true,
 	journalRelativeDates: true,
 	journalReplaceDailyNote: true,
