@@ -77,10 +77,12 @@ export default class EmilyPlugin extends Plugin {
 					return;
 				}
 
+				// Start on a fresh line; optionally leave a blank line above it.
+				const blank = this.settings.insertBlankLine;
 				let prefix = "";
 				if (currentLine.trim() !== "") {
-					prefix = "\n\n";
-				} else if (prevLine.trim() !== "") {
+					prefix = blank ? "\n\n" : "\n";
+				} else if (blank && prevLine.trim() !== "") {
 					prefix = "\n";
 				}
 

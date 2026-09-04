@@ -70,6 +70,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Blank line before timestamp")
+			.setDesc("Insert timestamp and link leaves an empty line above the new entry instead of just moving to the next line")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.insertBlankLine)
+				.onChange(async (value) => {
+					this.plugin.settings.insertBlankLine = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Highlight feelings in editor")
 			.setDesc("Underline emotions inside {} with a colored line matching their position on the feelings wheel")
 			.addToggle(toggle => toggle

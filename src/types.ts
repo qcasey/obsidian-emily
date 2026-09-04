@@ -45,6 +45,8 @@ export interface EmilySettings {
 	autoEmbed: boolean;
 	autoEmbedTopics: string;
 	insertBetweenBraces: boolean;
+	/** Leave a blank line before an inserted timestamp instead of just starting a new line. */
+	insertBlankLine: boolean;
 	narrationInheritMinutes: number;
 	frequencySuggestEnabled: boolean;
 	defaultEnabledGroup: string;
@@ -82,6 +84,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	autoEmbed: true,
 	autoEmbedTopics: "",
 	insertBetweenBraces: true,
+	insertBlankLine: false,
 	narrationInheritMinutes: 0,
 	frequencySuggestEnabled: true,
 	defaultEnabledGroup: "mood",
