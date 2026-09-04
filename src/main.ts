@@ -19,7 +19,7 @@ export default class EmilyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		this.applyTimestampGap();
+		this.applyTimestampStyles();
 
 		this.registerView(VIEW_TYPE_EMILY, (leaf) => new TrackingView(leaf, this));
 		this.registerView(VIEW_TYPE_JOURNAL, (leaf) => new JournalView(leaf, this));
@@ -260,6 +260,7 @@ export default class EmilyPlugin extends Plugin {
 
 	onunload() {
 		document.body.style.removeProperty("--emily-timestamp-gap");
+		document.body.removeClass("emily-timestamp-mono");
 		// Restore the core daily-notes command callback
 		if (this.originalDailyNotesCallback) {
 			const cmd = this.getDailyNotesCommand();
@@ -342,12 +343,13 @@ export default class EmilyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		this.applyTimestampGap();
+		this.applyTimestampStyles();
 	}
 
-	/** Expose the journal entry spacing setting to CSS as a body-level variable. */
-	private applyTimestampGap() {
+	/** Expose the journal timestamp settings to CSS on the body element. */
+	private applyTimestampStyles() {
 		const gap = Math.max(0, this.settings.timestampLineGap || 0);
 		document.body.style.setProperty("--emily-timestamp-gap", `${gap}em`);
+		document.body.toggleClass("emily-timestamp-mono", this.settings.timestampMonospace);
 	}
 }

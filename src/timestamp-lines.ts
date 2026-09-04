@@ -9,9 +9,12 @@ const TIMESTAMP_LINE_RE = /^\s*(\d{1,2}:\d{2})(?=\s|$)/;
 const LINE_CLASS = "emily-timestamp-line";
 /** Additionally set on the first line of a run sharing the same timestamp. */
 const GROUP_START_CLASS = "emily-timestamp-group-start";
+/** Wraps the HH:MM text itself. */
+const STAMP_CLASS = "emily-timestamp";
 
 const lineDeco = Decoration.line({class: LINE_CLASS});
 const groupStartDeco = Decoration.line({class: `${LINE_CLASS} ${GROUP_START_CLASS}`});
+const stampDeco = Decoration.mark({class: STAMP_CLASS});
 
 /** Normalize a folder setting like "Journal/" to "Journal/" (or "" for the vault root). */
 function normalizeFolder(folder: string): string {
@@ -42,6 +45,9 @@ function buildDecorations(view: EditorView): DecorationSet {
 				const prevMatch = TIMESTAMP_LINE_RE.exec(prevText);
 				const startsGroup = !prevMatch || prevMatch[1] !== match[1];
 				builder.add(line.from, line.from, startsGroup ? groupStartDeco : lineDeco);
+				const stamp = match[1]!;
+				const stampStart = line.from + match[0].length - stamp.length;
+				builder.add(stampStart, stampStart + stamp.length, stampDeco);
 			}
 			if (line.to >= doc.length) break;
 			pos = line.to + 1;
@@ -52,8 +58,9 @@ function buildDecorations(view: EditorView): DecorationSet {
 }
 
 /**
- * Tags editor lines that start with a timestamp so CSS snippets can style
- * them (for example, adding vertical spacing between journal entries).
+ * Tags editor lines that start with a timestamp so CSS can style them
+ * (for example, adding vertical spacing between journal entries), and wraps
+ * the timestamp text itself so it can be rendered in a monospace font.
  * Only active for files under the daily notes folder.
  */
 export function timestampLinesPlugin(folder: () => string) {

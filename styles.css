@@ -907,3 +907,10 @@
 	padding-top: var(--emily-timestamp-gap, 0);
 	padding-bottom: var(--emily-timestamp-gap, 0);
 }
+
+/* Monospace timestamps: the HH:MM span is tagged .emily-timestamp; the body
+   class is toggled by the "Monospace timestamps" setting. */
+body.emily-timestamp-mono .cm-line .emily-timestamp {
+	font-family: var(--font-monospace);
+	font-variant-numeric: tabular-nums;
+}

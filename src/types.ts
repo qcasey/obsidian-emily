@@ -65,6 +65,8 @@ export interface EmilySettings {
 	feelingsHighlight: boolean;
 	/** Extra vertical padding (em) above and below timestamped journal lines. */
 	timestampLineGap: number;
+	/** Render the HH:MM timestamp at the start of journal lines in a monospace font. */
+	timestampMonospace: boolean;
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
@@ -97,6 +99,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	showWheelSettingsIcon: true,
 	feelingsHighlight: true,
 	timestampLineGap: 0.75,
+	timestampMonospace: true,
 	infiniteJournal: true,
 	journalRelativeDates: true,
 	journalReplaceDailyNote: true,
