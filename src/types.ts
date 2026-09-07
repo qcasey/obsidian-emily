@@ -49,6 +49,8 @@ export interface EmilySettings {
 	insertBlankLine: boolean;
 	narrationInheritMinutes: number;
 	frequencySuggestEnabled: boolean;
+	/** After picking a `[[link]]` suggestion on a log line (`HH:MM [[link]]`), insert a space so the value can be typed right away. */
+	spaceAfterLogLink: boolean;
 	defaultEnabledGroup: string;
 	feelingsWheelZoom: number;
 	feelingsWheel3d: "off" | "opacity" | "size";
@@ -91,6 +93,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	insertBlankLine: false,
 	narrationInheritMinutes: 0,
 	frequencySuggestEnabled: true,
+	spaceAfterLogLink: true,
 	defaultEnabledGroup: "mood",
 	feelingsWheelZoom: 50,
 	feelingsWheel3d: "off",

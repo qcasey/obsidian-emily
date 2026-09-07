@@ -1,5 +1,8 @@
-import type {App} from "obsidian";
+import type {App, Editor} from "obsidian";
 import type EmilyPlugin from "./main";
+
+/** Text before the cursor on a log line, right after a freshly inserted link: `HH:MM [[link]]`. */
+const LOG_LINK_END_RE = /^\s*\d{1,2}:\d{2}\s+\[\[[^\]]+\]\]$/;
 
 export class FrequencyLinkSort {
 	private frequencyCache = new Map<string, number>();
@@ -43,7 +46,47 @@ export class FrequencyLinkSort {
 			return self.sortByFrequency(results, query, isTimestamp);
 		};
 
+		this.patchSelectSuggestion(nativeSuggest);
+
 		this.patched = true;
+	}
+
+	/**
+	 * After the native suggest inserts a `[[link]]` on a log line, add a space
+	 * so the cursor is ready for the value (`HH:MM [[link]] 5`).
+	 */
+	private patchSelectSuggestion(nativeSuggest: any): void {
+		if (typeof nativeSuggest.selectSuggestion !== "function") return;
+		const original = nativeSuggest.selectSuggestion.bind(nativeSuggest);
+		const self = this;
+
+		nativeSuggest.selectSuggestion = function (value: any, evt: any) {
+			// `close()` inside the native handler clears the context, so grab the editor first
+			const editor = this.context?.editor as Editor | undefined;
+			const result = original(value, evt);
+			if (self.plugin.settings.spaceAfterLogLink && editor) {
+				try {
+					self.insertSpaceAfterLogLink(editor);
+				} catch {
+					// Never let a cosmetic tweak break link insertion
+				}
+			}
+			return result;
+		};
+	}
+
+	private insertSpaceAfterLogLink(editor: Editor): void {
+		const cursor = editor.getCursor();
+		const line = editor.getLine(cursor.line);
+		const before = line.slice(0, cursor.ch);
+		const after = line.slice(cursor.ch);
+		if (!LOG_LINK_END_RE.test(before)) return;
+		if (after.startsWith(" ")) {
+			editor.setCursor({line: cursor.line, ch: cursor.ch + 1});
+			return;
+		}
+		editor.replaceRange(" ", cursor);
+		editor.setCursor({line: cursor.line, ch: cursor.ch + 1});
 	}
 
 	private isTimestampContext(context: any): boolean {

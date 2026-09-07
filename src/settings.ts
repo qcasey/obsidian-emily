@@ -219,6 +219,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Space after log link")
+			.setDesc("After selecting a [[link]] suggestion on a log line (HH:MM [[link]]), insert a space so the value can be typed right away")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.spaceAfterLogLink)
+				.onChange(async (value) => {
+					this.plugin.settings.spaceAfterLogLink = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Default enabled group")
 			.setDesc("Group to enable on first load when no topics have tracking_visible_default set")
 			.addText(text => text
