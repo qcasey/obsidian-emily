@@ -22,11 +22,19 @@ function normalizeFolder(folder: string): string {
 	return trimmed ? `${trimmed}/` : "";
 }
 
-/** Does the editor belong to a file under the configured folder? */
-function isInFolder(view: EditorView, folder: string): boolean {
-	const info = view.state.field(editorInfoField, false);
-	const path = info?.file?.path;
-	if (!path) return false;
+/** Path of the file the editor is showing, or undefined if none is attached yet. */
+function filePath(view: EditorView): string | undefined {
+	return view.state.field(editorInfoField, false)?.file?.path;
+}
+
+/**
+ * Does the file belong under the configured folder? An editor with no file
+ * attached yet (which happens briefly while Obsidian is opening a note) is
+ * treated as a daily note so the decorations are present on the first paint;
+ * `update` removes them once the file is known.
+ */
+function isInFolder(path: string | undefined, folder: string): boolean {
+	if (!path) return true;
 	const prefix = normalizeFolder(folder);
 	return prefix === "" || path.startsWith(prefix);
 }
@@ -67,17 +75,22 @@ export function timestampLinesPlugin(folder: () => string) {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
+			private path: string | undefined;
 
 			constructor(view: EditorView) {
-				this.decorations = isInFolder(view, folder()) ? buildDecorations(view) : Decoration.none;
+				this.path = filePath(view);
+				this.decorations = isInFolder(this.path, folder()) ? buildDecorations(view) : Decoration.none;
 			}
 
 			update(update: ViewUpdate) {
-				if (!isInFolder(update.view, folder())) {
+				const path = filePath(update.view);
+				const fileChanged = path !== this.path;
+				this.path = path;
+				if (!isInFolder(path, folder())) {
 					this.decorations = Decoration.none;
 					return;
 				}
-				if (update.docChanged || update.viewportChanged || this.decorations === Decoration.none) {
+				if (update.docChanged || update.viewportChanged || fileChanged || this.decorations === Decoration.none) {
 					this.decorations = buildDecorations(update.view);
 				}
 			}
