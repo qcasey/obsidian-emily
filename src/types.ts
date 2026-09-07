@@ -71,6 +71,8 @@ export interface EmilySettings {
 	timestampMonospace: boolean;
 	/** Render the HH:MM timestamp in the muted text color. */
 	timestampMuted: boolean;
+	/** Open notes with their properties collapsed. */
+	foldPropertiesByDefault: boolean;
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
@@ -106,6 +108,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	timestampLineGap: 0.75,
 	timestampMonospace: true,
 	timestampMuted: false,
+	foldPropertiesByDefault: false,
 	infiniteJournal: true,
 	journalRelativeDates: true,
 	journalReplaceDailyNote: true,

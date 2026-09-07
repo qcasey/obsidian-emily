@@ -122,6 +122,16 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Fold properties by default")
+			.setDesc("Open notes with their properties collapsed. Applied while the note loads, so there's no flash of expanded properties")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.foldPropertiesByDefault)
+				.onChange(async (value) => {
+					this.plugin.settings.foldPropertiesByDefault = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Narration inherit window")
 			.setDesc("Entries without narration inherit from the nearest entry within this many minutes (0 = disabled)")
 			.addText(text => text

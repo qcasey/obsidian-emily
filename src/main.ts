@@ -10,6 +10,7 @@ import {FrequencyLinkSort} from "./suggest";
 import {FeelingsOverlay} from "./feelings-overlay";
 import {feelingsHighlightPlugin} from "./feelings-highlight";
 import {timestampLinesPlugin} from "./timestamp-lines";
+import {patchFoldManager} from "./fold-properties";
 import {getDailyNotesConfig} from "./daily-notes";
 
 export default class EmilyPlugin extends Plugin {
@@ -20,6 +21,8 @@ export default class EmilyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.applyTimestampStyles();
+		// Patched before the workspace is restored so notes reopened at startup load folded too
+		this.register(patchFoldManager(this.app, () => this.settings.foldPropertiesByDefault));
 
 		this.registerView(VIEW_TYPE_EMILY, (leaf) => new TrackingView(leaf, this));
 		this.registerView(VIEW_TYPE_JOURNAL, (leaf) => new JournalView(leaf, this));
