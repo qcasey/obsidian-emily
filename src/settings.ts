@@ -122,6 +122,18 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("12-hour timestamps")
+			.setDesc("Show the HH:MM at the start of journal lines as a 12-hour time (14:35 → 2:35 pm). The note text isn't changed: the 12-hour time is drawn over it, right-aligned so the rest of the line stays put. The raw time shows while the cursor is on it")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.timestampTwelveHour)
+				.onChange(async (value) => {
+					this.plugin.settings.timestampTwelveHour = value;
+					await this.plugin.saveSettings();
+					// Nudges every open editor so the decorations rebuild without a keystroke
+					this.app.workspace.updateOptions();
+				}));
+
+		new Setting(containerEl)
 			.setName("Fold properties by default")
 			.setDesc("Open notes with their properties collapsed. Applied while the note loads, so there's no flash of expanded properties")
 			.addToggle(toggle => toggle

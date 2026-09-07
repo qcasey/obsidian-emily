@@ -920,3 +920,25 @@ body.emily-timestamp-muted .cm-line .emily-timestamp {
 	color: var(--text-muted);
 	font-size: 0.85em;
 }
+
+/* 12-hour timestamps: the raw HH:MM stays in the document (so the line keeps
+   its exact width and the caret still lands on real characters) but is drawn
+   transparent; the 12-hour text from data-emily-12h is overlaid on top,
+   anchored to the raw text's right edge so the rest of the line never moves.
+   Any extra characters (" pm") grow leftwards into the margin. The attribute
+   is dropped while the cursor touches the timestamp, revealing the raw text. */
+.cm-line .emily-timestamp[data-emily-12h] {
+	position: relative;
+	color: transparent;
+}
+.cm-line .emily-timestamp[data-emily-12h]::after {
+	content: attr(data-emily-12h);
+	position: absolute;
+	right: 0;
+	white-space: nowrap;
+	pointer-events: none;
+	color: var(--text-normal);
+}
+body.emily-timestamp-muted .cm-line .emily-timestamp[data-emily-12h]::after {
+	color: var(--text-muted);
+}

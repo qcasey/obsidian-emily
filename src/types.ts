@@ -71,6 +71,8 @@ export interface EmilySettings {
 	timestampMonospace: boolean;
 	/** Render the HH:MM timestamp in the muted text color. */
 	timestampMuted: boolean;
+	/** Display (not rewrite) HH:MM timestamps as 12-hour times, right-aligned over the original text. */
+	timestampTwelveHour: boolean;
 	/** Open notes with their properties collapsed. */
 	foldPropertiesByDefault: boolean;
 	infiniteJournal: boolean;
@@ -108,6 +110,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	timestampLineGap: 0.75,
 	timestampMonospace: true,
 	timestampMuted: false,
+	timestampTwelveHour: true,
 	foldPropertiesByDefault: false,
 	infiniteJournal: true,
 	journalRelativeDates: true,

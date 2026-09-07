@@ -31,7 +31,10 @@ export default class EmilyPlugin extends Plugin {
 			feelingsHighlightPlugin(() => this.settings.feelingsHighlight),
 		);
 		this.registerEditorExtension(
-			timestampLinesPlugin(() => getDailyNotesConfig(this.app, this.settings).folder),
+			timestampLinesPlugin(
+				() => getDailyNotesConfig(this.app, this.settings).folder,
+				() => this.settings.timestampTwelveHour,
+			),
 		);
 
 		this.addRibbonIcon("line-chart", "Open Emily tracker", () => {
