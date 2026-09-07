@@ -923,15 +923,17 @@ body.emily-timestamp-muted .cm-line .emily-timestamp {
 
 /* 12-hour timestamps: the raw HH:MM stays in the document (so the line keeps
    its exact width and the caret still lands on real characters) but is drawn
-   transparent; the 12-hour text from data-emily-12h is overlaid on top,
-   anchored to the raw text's right edge so the rest of the line never moves.
-   Any extra characters (" pm") grow leftwards into the margin. The attribute
-   is dropped while the cursor touches the timestamp, revealing the raw text. */
-.cm-line .emily-timestamp[data-emily-12h] {
+   transparent. The 12-hour time from data-emily-12h is overlaid on top,
+   right-aligned onto the raw text so it occupies the same columns and the
+   rest of the line never moves; the am/pm from data-emily-12h-period floats
+   as a small badge at the bottom-right corner. The attributes are dropped
+   while the cursor touches the timestamp, revealing the raw text.
+   Selectors carry `body .cm-editor` so they outrank the muted-color rule above. */
+body .cm-editor .cm-line .emily-timestamp[data-emily-12h] {
 	position: relative;
 	color: transparent;
 }
-.cm-line .emily-timestamp[data-emily-12h]::after {
+body .cm-editor .cm-line .emily-timestamp[data-emily-12h]::before {
 	content: attr(data-emily-12h);
 	position: absolute;
 	right: 0;
@@ -939,6 +941,19 @@ body.emily-timestamp-muted .cm-line .emily-timestamp {
 	pointer-events: none;
 	color: var(--text-normal);
 }
-body.emily-timestamp-muted .cm-line .emily-timestamp[data-emily-12h]::after {
+body.emily-timestamp-muted .cm-editor .cm-line .emily-timestamp[data-emily-12h]::before {
 	color: var(--text-muted);
+}
+body .cm-editor .cm-line .emily-timestamp[data-emily-12h]::after {
+	content: attr(data-emily-12h-period);
+	position: absolute;
+	right: -0.35em;
+	bottom: -0.3em;
+	font-size: 0.55em;
+	line-height: 1;
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	white-space: nowrap;
+	pointer-events: none;
+	color: var(--text-faint);
 }

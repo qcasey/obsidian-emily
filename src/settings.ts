@@ -123,7 +123,7 @@ export class EmilySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("12-hour timestamps")
-			.setDesc("Show the HH:MM at the start of journal lines as a 12-hour time (14:35 → 2:35 pm). The note text isn't changed: the 12-hour time is drawn over it, right-aligned so the rest of the line stays put. The raw time shows while the cursor is on it")
+			.setDesc("Show the HH:MM at the start of journal lines as a 12-hour time (14:35 → 2:35 with a small pm badge). The note text isn't changed: the 12-hour time is drawn over it, so the rest of the line stays put. The raw time shows while the cursor is on it")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.timestampTwelveHour)
 				.onChange(async (value) => {

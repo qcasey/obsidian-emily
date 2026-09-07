@@ -13,12 +13,14 @@ const GROUP_START_CLASS = "emily-timestamp-group-start";
 /** Wraps the HH:MM text itself. */
 const STAMP_CLASS = "emily-timestamp";
 /**
- * Set on the HH:MM span to the 12-hour rendering of the time. CSS draws the
- * raw text transparent and overlays this value (`content: attr(...)`),
- * right-aligned to the raw text's end, so the document and the line's width
- * are untouched.
+ * Set on the HH:MM span to the 12-hour time ("2:35") and its period ("pm").
+ * CSS draws the raw text transparent and overlays these values via
+ * `content: attr(...)`: the time right-aligned onto the raw text, the period
+ * as a small badge at its bottom-right corner. The document and the line's
+ * width are untouched.
  */
 const TWELVE_HOUR_ATTR = "data-emily-12h";
+const PERIOD_ATTR = "data-emily-12h-period";
 
 const lineDeco = Decoration.line({class: LINE_CLASS});
 const groupStartDeco = Decoration.line({class: `${LINE_CLASS} ${GROUP_START_CLASS}`});
@@ -27,23 +29,27 @@ const stampDeco = Decoration.mark({class: STAMP_CLASS});
 /** One decoration per distinct 12-hour string (at most 1440), reused across rebuilds. */
 const twelveHourDecos = new Map<string, Decoration>();
 
-/** "14:35" → "2:35 pm", "00:05" → "12:05 am". Returns undefined for out-of-range values. */
-export function toTwelveHour(stamp: string): string | undefined {
+/** "14:35" → {time: "2:35", period: "pm"}, "00:05" → {time: "12:05", period: "am"}. Undefined if out of range. */
+export function toTwelveHour(stamp: string): {time: string; period: "am" | "pm"} | undefined {
 	const [h, m] = stamp.split(":");
 	const hours = Number(h);
 	const minutes = Number(m);
 	if (hours > 23 || minutes > 59) return undefined;
 	const hour12 = hours % 12 || 12;
-	return `${hour12}:${m} ${hours < 12 ? "am" : "pm"}`;
+	return {time: `${hour12}:${m}`, period: hours < 12 ? "am" : "pm"};
 }
 
 function twelveHourDeco(stamp: string): Decoration {
-	const text = toTwelveHour(stamp);
-	if (text === undefined) return stampDeco;
-	let deco = twelveHourDecos.get(text);
+	const parsed = toTwelveHour(stamp);
+	if (!parsed) return stampDeco;
+	const key = `${parsed.time} ${parsed.period}`;
+	let deco = twelveHourDecos.get(key);
 	if (!deco) {
-		deco = Decoration.mark({class: STAMP_CLASS, attributes: {[TWELVE_HOUR_ATTR]: text}});
-		twelveHourDecos.set(text, deco);
+		deco = Decoration.mark({
+			class: STAMP_CLASS,
+			attributes: {[TWELVE_HOUR_ATTR]: parsed.time, [PERIOD_ATTR]: parsed.period},
+		});
+		twelveHourDecos.set(key, deco);
 	}
 	return deco;
 }
