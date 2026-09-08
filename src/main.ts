@@ -12,6 +12,7 @@ import {feelingsHighlightPlugin} from "./feelings-highlight";
 import {timestampLinesPlugin} from "./timestamp-lines";
 import {patchFoldManager} from "./fold-properties";
 import {getDailyNotesConfig} from "./daily-notes";
+import {registerEmilyUriHandler} from "./uri";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
@@ -210,6 +211,7 @@ export default class EmilyPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new EmilySettingTab(this.app, this));
+		registerEmilyUriHandler(this);
 
 		const freqSort = new FrequencyLinkSort(this.app, this);
 		// Patch after layout is ready so the native suggest is registered
