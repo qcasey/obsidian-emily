@@ -17,6 +17,7 @@ export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
 	private journalRibbonEl: HTMLElement | null = null;
 	private originalDailyNotesCallback: (() => unknown) | null = null;
+	private freqSort: FrequencyLinkSort | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -214,7 +215,8 @@ export default class EmilyPlugin extends Plugin {
 		this.addSettingTab(new EmilySettingTab(this.app, this));
 		registerEmilyUriHandler(this);
 
-		const freqSort = new FrequencyLinkSort(this.app, this);
+		this.freqSort = new FrequencyLinkSort(this.app, this);
+		const freqSort = this.freqSort;
 		// Patch after layout is ready so the native suggest is registered
 		this.app.workspace.onLayoutReady(() => {
 			freqSort.patchNativeSuggest();
@@ -304,6 +306,10 @@ export default class EmilyPlugin extends Plugin {
 				this.originalDailyNotesCallback?.();
 			}
 		};
+	}
+
+	rebuildFrequencyCache(): void {
+		this.freqSort?.rebuildFrequencyCache();
 	}
 
 	updateJournalRibbon(): void {

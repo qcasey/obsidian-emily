@@ -150,8 +150,10 @@ export class FrequencyLinkSort {
 		return this.frequencyCache.get(path) ?? 0;
 	}
 
+	/** Rebuilds the link-count map, or just empties it when the feature is off so nothing stale lingers. */
 	rebuildFrequencyCache(): void {
 		this.frequencyCache.clear();
+		if (!this.plugin.settings.frequencySuggestEnabled) return;
 		const resolved = this.app.metadataCache.resolvedLinks;
 		for (const sourcePath in resolved) {
 			const links = resolved[sourcePath];

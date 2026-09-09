@@ -95,6 +95,8 @@ export class EmilySettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.frequencySuggestEnabled = value;
 					await this.plugin.saveSettings();
+					// Builds the cache now that it's wanted, or drops it now that it isn't
+					this.plugin.rebuildFrequencyCache();
 				}));
 
 		new Setting(containerEl)
