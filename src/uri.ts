@@ -2,6 +2,7 @@ import {MarkdownView, Notice, TFile, moment, normalizePath} from "obsidian";
 import type {App, ObsidianProtocolData} from "obsidian";
 import type EmilyPlugin from "./main";
 import {createDailyNote} from "./daily-notes";
+import {createPlaceNote, findNearestPlace, parseLatLng} from "./places";
 
 /**
  * Delays (ms) at which the editor is re-focused after opening. On mobile the
@@ -27,6 +28,18 @@ const FOCUS_RETRY_DELAYS = [0, 100, 300, 700, 1500];
  *                     heading of the same or higher level; text goes after its
  *                     last non-blank line so a trailing blank line is kept. A
  *                     heading that isn't in the note is created at the end.
+ *
+ * Logging a place, e.g. from a Shortcut that knows where the phone is:
+ *
+ * - `place=...`          name of the place, as reverse-geocoding reported it
+ * - `coordinates=lat,lng` where the phone was
+ *
+ * If a note in the places folder has coordinates within the snap radius, that
+ * note is logged instead of `place` (so a strip-mall storefront next to
+ * Ralph's becomes Ralph's). Otherwise a new place note is created with the
+ * coordinates. Either way `HH:MM [[Place]]` is appended under `heading`,
+ * which defaults to the places heading setting, with `data` after the link
+ * if given.
  */
 export function registerEmilyUriHandler(plugin: EmilyPlugin): void {
 	plugin.registerObsidianProtocolHandler("emily", (params) => {
@@ -54,9 +67,16 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 
 	const editor = view.editor;
 	const mode = params.mode ?? "append";
-	const data = params.data ?? "";
+	let data = params.data ?? "";
+	let headingParam = params.heading;
+	const point = parseLatLng(params.coordinates);
+	if (point) {
+		const placeFile = await resolvePlace(plugin, params.place ?? "", point);
+		data = `${timestampNow()} [[${placeFile.basename}]]${data ? ` ${data}` : ""}`;
+		headingParam ??= settings.placesHeading;
+	}
 	if (mode === "append" && data) {
-		const heading = parseHeadingParam(params.heading);
+		const heading = parseHeadingParam(headingParam);
 		const anchor = heading ? findSectionEnd(editor, heading) : null;
 		if (heading && !anchor) {
 			// Section missing: create it at the end, then append beneath it
@@ -70,6 +90,29 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 	}
 
 	focusEditor(plugin, view);
+}
+
+/**
+ * The place note to log for a fix at `point`: a known note within the snap
+ * radius wins over the reported name, otherwise a note named `name` is created.
+ */
+async function resolvePlace(plugin: EmilyPlugin, name: string, point: {lat: number; lng: number}): Promise<TFile> {
+	const {app, settings} = plugin;
+	const match = findNearestPlace(app, settings, point);
+	if (match) {
+		if (name && name !== match.file.basename) {
+			new Notice(`Emily: logged ${match.file.basename} (${Math.round(match.distance)} m away) instead of ${name}`);
+		}
+		return match.file;
+	}
+	const file = await createPlaceNote(app, settings, name, point);
+	new Notice(`Emily: new place ${file.basename}`);
+	return file;
+}
+
+function timestampNow(): string {
+	const now = new Date();
+	return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 interface HeadingSpec {

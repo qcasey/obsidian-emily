@@ -52,6 +52,12 @@ export interface EmilySettings {
 	/** After picking a `[[link]]` suggestion on a log line (`HH:MM [[link]]`), insert a space so the value can be typed right away. */
 	spaceAfterLogLink: boolean;
 	defaultEnabledGroup: string;
+	/** Folder holding one note per place, each with a `coordinates` property. */
+	placesFolder: string;
+	/** Heading that `place=` URI logs go under when the URI doesn't say. */
+	placesHeading: string;
+	/** A logged place within this many meters of a known place note is treated as that place. */
+	placeSnapMeters: number;
 	feelingsWheelZoom: number;
 	feelingsWheel3d: "off" | "opacity" | "size";
 	rolodexK: number;
@@ -95,6 +101,9 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	frequencySuggestEnabled: true,
 	spaceAfterLogLink: true,
 	defaultEnabledGroup: "mood",
+	placesFolder: "Locations",
+	placesHeading: "Locations",
+	placeSnapMeters: 150,
 	feelingsWheelZoom: 50,
 	feelingsWheel3d: "off",
 	rolodexK: 40,

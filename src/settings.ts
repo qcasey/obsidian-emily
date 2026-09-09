@@ -20,7 +20,46 @@ export class EmilySettingTab extends PluginSettingTab {
 		this.displayEditorAppearance(containerEl);
 		this.displayInfiniteJournal(containerEl);
 		this.displayTrackingChart(containerEl);
+		this.displayPlaces(containerEl);
 		this.displayFeelingsWheel(containerEl);
+	}
+
+	private displayPlaces(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Places");
+
+		new Setting(containerEl)
+			.setName("Places folder")
+			.setDesc("Folder of place notes, one per location, each with a coordinates property (lat, lng). Used by the emily://…&place=&coordinates= URI")
+			.addText(text => text
+				.setPlaceholder("Locations")
+				.setValue(this.plugin.settings.placesFolder)
+				.onChange(async (value) => {
+					this.plugin.settings.placesFolder = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Places heading")
+			.setDesc("Heading in the daily note that place logs go under when the URI doesn't specify one")
+			.addText(text => text
+				.setPlaceholder("Locations")
+				.setValue(this.plugin.settings.placesHeading)
+				.onChange(async (value) => {
+					this.plugin.settings.placesHeading = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Snap radius")
+			.setDesc("A logged location within this many meters of a known place note is recorded as that place, whatever name the phone reported (0 = always use the reported name)")
+			.addText(text => text
+				.setPlaceholder("150")
+				.setValue(String(this.plugin.settings.placeSnapMeters))
+				.onChange(async (value) => {
+					const num = parseInt(value, 10);
+					this.plugin.settings.placeSnapMeters = isNaN(num) ? 0 : Math.max(0, num);
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private heading(containerEl: HTMLElement, text: string): void {
