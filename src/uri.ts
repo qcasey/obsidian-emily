@@ -21,6 +21,12 @@ const FOCUS_RETRY_DELAYS = [0, 100, 300, 700, 1500];
  * - `filepath=...`    target this vault path instead (".md" optional)
  * - `mode=append`     append `data` on a new line (default); `open` ignores `data`
  * - `data=...`        URL-encoded text to append
+ * - `heading=...`     append at the end of this section instead of the end of
+ *                     the note. Leading `#`s are optional ("Locations" and
+ *                     "# Locations" both work). The section runs until the next
+ *                     heading of the same or higher level; text goes after its
+ *                     last non-blank line so a trailing blank line is kept. A
+ *                     heading that isn't in the note is created at the end.
  */
 export function registerEmilyUriHandler(plugin: EmilyPlugin): void {
 	plugin.registerObsidianProtocolHandler("emily", (params) => {
@@ -50,19 +56,89 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 	const mode = params.mode ?? "append";
 	const data = params.data ?? "";
 	if (mode === "append" && data) {
-		const lastLine = editor.lastLine();
-		const lastText = editor.getLine(lastLine);
-		let prefix = "";
-		if (lastText.trim() !== "") {
-			prefix = settings.insertBlankLine ? "\n\n" : "\n";
-		} else if (settings.insertBlankLine && lastLine > 0 && editor.getLine(lastLine - 1).trim() !== "") {
-			prefix = "\n";
+		const heading = parseHeadingParam(params.heading);
+		const anchor = heading ? findSectionEnd(editor, heading) : null;
+		if (heading && !anchor) {
+			// Section missing: create it at the end, then append beneath it
+			appendAt(editor, editor.lastLine(), settings.insertBlankLine, `${"#".repeat(heading.level)} ${heading.text}`);
 		}
-		editor.replaceRange(prefix + data, {line: lastLine, ch: lastText.length});
+		const line = anchor ?? editor.lastLine();
+		const end = appendAt(editor, line, settings.insertBlankLine, data);
+		editor.setCursor(end);
+	} else {
+		moveCursorToEnd(editor);
 	}
 
-	moveCursorToEnd(editor);
 	focusEditor(plugin, view);
+}
+
+interface HeadingSpec {
+	text: string;
+	/** 1-6; used only when the heading has to be created */
+	level: number;
+}
+
+/** `"# Locations"` → `{text: "Locations", level: 1}`; `"Locations"` → level 1 too. */
+function parseHeadingParam(raw: string | undefined): HeadingSpec | null {
+	if (!raw) return null;
+	const m = /^\s*(#{0,6})\s*(.*?)\s*$/.exec(raw);
+	const text = m?.[2] ?? "";
+	if (!text) return null;
+	return {text, level: Math.max(1, m?.[1]?.length ?? 0)};
+}
+
+const HEADING_RE = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
+
+/**
+ * Line number of the last non-blank line in the section under `heading`, or
+ * the heading line itself when the section is empty. `null` if the heading
+ * isn't in the note. Headings inside fenced code blocks are ignored.
+ */
+function findSectionEnd(editor: MarkdownView["editor"], heading: HeadingSpec): number | null {
+	const want = heading.text.toLowerCase();
+	let inFence = false;
+	let level = 0;
+	let end: number | null = null;
+	for (let i = 0; i <= editor.lastLine(); i++) {
+		const text = editor.getLine(i);
+		if (/^\s*(```|~~~)/.test(text)) inFence = !inFence;
+		if (inFence) {
+			if (end !== null) end = i;
+			continue;
+		}
+		const m = HEADING_RE.exec(text);
+		if (m) {
+			const thisLevel = m[1]!.length;
+			if (end !== null && thisLevel <= level) return end;
+			if (end === null && m[2]!.toLowerCase() === want) {
+				level = thisLevel;
+				end = i;
+			}
+			continue;
+		}
+		if (end !== null && text.trim() !== "") end = i;
+	}
+	return end;
+}
+
+/**
+ * Insert `text` on a new line after `line`, separated by a blank line when the
+ * setting asks for one and there isn't one already. Returns the end position
+ * of the inserted text.
+ */
+function appendAt(editor: MarkdownView["editor"], line: number, blankLine: boolean, text: string): {line: number; ch: number} {
+	const lineText = editor.getLine(line);
+	let prefix = "";
+	if (lineText.trim() !== "") {
+		prefix = blankLine ? "\n\n" : "\n";
+	} else if (blankLine && line > 0 && editor.getLine(line - 1).trim() !== "") {
+		prefix = "\n";
+	}
+	editor.replaceRange(prefix + text, {line, ch: lineText.length});
+	const inserted = (prefix + text).split("\n");
+	const endLine = line + inserted.length - 1;
+	const endCh = inserted.length === 1 ? lineText.length + text.length : inserted[inserted.length - 1]!.length;
+	return {line: endLine, ch: endCh};
 }
 
 async function resolveTarget(app: App, plugin: EmilyPlugin, params: ObsidianProtocolData): Promise<TFile | null> {
