@@ -7,7 +7,6 @@ import {JournalView, VIEW_TYPE_JOURNAL} from "./journal-view";
 import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
-import {FeelingsOverlay} from "./feelings-overlay";
 import {feelingsHighlightPlugin} from "./feelings-highlight";
 import {timestampLinesPlugin} from "./timestamp-lines";
 import {patchFoldManager} from "./fold-properties";
@@ -108,7 +107,9 @@ export default class EmilyPlugin extends Plugin {
 			id: "show-feelings-wheel",
 			name: "Show feelings wheel",
 			icon: "heart",
-			editorCallback: (editor: Editor) => {
+			editorCallback: async (editor: Editor) => {
+				// Loaded on first use so the wheel's code isn't evaluated at startup
+				const {FeelingsOverlay} = await import("./feelings-overlay");
 				const overlay = new FeelingsOverlay(
 					editor,
 					(emotions) => {

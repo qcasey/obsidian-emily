@@ -15,6 +15,21 @@ export class EmilySettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 		containerEl.empty();
 
+		this.displayDailyNotes(containerEl);
+		this.displayLogEntries(containerEl);
+		this.displayEditorAppearance(containerEl);
+		this.displayInfiniteJournal(containerEl);
+		this.displayTrackingChart(containerEl);
+		this.displayFeelingsWheel(containerEl);
+	}
+
+	private heading(containerEl: HTMLElement, text: string): void {
+		new Setting(containerEl).setName(text).setHeading();
+	}
+
+	private displayDailyNotes(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Daily notes");
+
 		new Setting(containerEl)
 			.setName("Daily notes folder")
 			.setDesc("Leave empty to auto-detect from Daily Notes or Periodic Notes plugin")
@@ -38,17 +53,6 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Default date range")
-			.setDesc("Number of days to show by default")
-			.addDropdown(drop => drop
-				.addOptions({"7": "7 days", "14": "14 days", "30": "30 days", "90": "90 days"})
-				.setValue(String(this.plugin.settings.defaultDateRangeDays))
-				.onChange(async (value) => {
-					this.plugin.settings.defaultDateRangeDays = Number(value);
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
 			.setName("Log section heading")
 			.setDesc("The heading text that marks the start of log entries in daily notes")
 			.addText(text => text
@@ -60,14 +64,18 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Insert between {}")
-			.setDesc("Wrap inserted emotions in curly braces, e.g. {Energetic, Interested}")
+			.setName("Fold properties by default")
+			.setDesc("Open notes with their properties collapsed. Applied while the note loads, so there's no flash of expanded properties")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.insertBetweenBraces)
+				.setValue(this.plugin.settings.foldPropertiesByDefault)
 				.onChange(async (value) => {
-					this.plugin.settings.insertBetweenBraces = value;
+					this.plugin.settings.foldPropertiesByDefault = value;
 					await this.plugin.saveSettings();
 				}));
+	}
+
+	private displayLogEntries(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Log entries");
 
 		new Setting(containerEl)
 			.setName("Blank line before timestamp")
@@ -80,14 +88,38 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Highlight feelings in editor")
-			.setDesc("Underline emotions inside {} with a colored line matching their position on the feelings wheel")
+			.setName("Frequency-sorted link suggest")
+			.setDesc("Show link suggestions sorted by usage frequency after inserting a timestamp")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.feelingsHighlight)
+				.setValue(this.plugin.settings.frequencySuggestEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.feelingsHighlight = value;
+					this.plugin.settings.frequencySuggestEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Space after log link")
+			.setDesc("After selecting a [[link]] suggestion on a log line (HH:MM [[link]]), insert a space so the value can be typed right away")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.spaceAfterLogLink)
+				.onChange(async (value) => {
+					this.plugin.settings.spaceAfterLogLink = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Insert between {}")
+			.setDesc("Wrap inserted emotions in curly braces, e.g. {Energetic, Interested}")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.insertBetweenBraces)
+				.onChange(async (value) => {
+					this.plugin.settings.insertBetweenBraces = value;
+					await this.plugin.saveSettings();
+				}));
+	}
+
+	private displayEditorAppearance(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Editor appearance");
 
 		new Setting(containerEl)
 			.setName("Journal entry spacing")
@@ -134,12 +166,74 @@ export class EmilySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Fold properties by default")
-			.setDesc("Open notes with their properties collapsed. Applied while the note loads, so there's no flash of expanded properties")
+			.setName("Highlight feelings in editor")
+			.setDesc("Underline emotions inside {} with a colored line matching their position on the feelings wheel")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.foldPropertiesByDefault)
+				.setValue(this.plugin.settings.feelingsHighlight)
 				.onChange(async (value) => {
-					this.plugin.settings.foldPropertiesByDefault = value;
+					this.plugin.settings.feelingsHighlight = value;
+					await this.plugin.saveSettings();
+				}));
+	}
+
+	private displayInfiniteJournal(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Infinite journal");
+
+		new Setting(containerEl)
+			.setName("Infinite journal")
+			.setDesc("Enable the infinite-scrolling journal view of daily notes")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.infiniteJournal)
+				.onChange(async (value) => {
+					this.plugin.settings.infiniteJournal = value;
+					await this.plugin.saveSettings();
+					this.plugin.updateJournalRibbon();
+				}));
+
+		new Setting(containerEl)
+			.setName("Show relative dates")
+			.setDesc("Show journal day headers as Today, Yesterday, Last Friday, etc. instead of the raw date")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.journalRelativeDates)
+				.onChange(async (value) => {
+					this.plugin.settings.journalRelativeDates = value;
+					await this.plugin.saveSettings();
+					this.plugin.refreshJournalViews();
+				}));
+
+		new Setting(containerEl)
+			.setName("Replace daily note")
+			.setDesc("Open the infinite journal (scrolled to today) instead of a single note when using the Open today's daily note command")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.journalReplaceDailyNote)
+				.onChange(async (value) => {
+					this.plugin.settings.journalReplaceDailyNote = value;
+					await this.plugin.saveSettings();
+				}));
+	}
+
+	private displayTrackingChart(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Tracking chart");
+
+		new Setting(containerEl)
+			.setName("Default date range")
+			.setDesc("Number of days to show by default")
+			.addDropdown(drop => drop
+				.addOptions({"7": "7 days", "14": "14 days", "30": "30 days", "90": "90 days"})
+				.setValue(String(this.plugin.settings.defaultDateRangeDays))
+				.onChange(async (value) => {
+					this.plugin.settings.defaultDateRangeDays = Number(value);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Default enabled group")
+			.setDesc("Group to enable on first load when no topics have tracking_visible_default set")
+			.addText(text => text
+				.setPlaceholder("mood")
+				.setValue(this.plugin.settings.defaultEnabledGroup)
+				.onChange(async (value) => {
+					this.plugin.settings.defaultEnabledGroup = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -175,69 +269,10 @@ export class EmilySettingTab extends PluginSettingTab {
 					this.plugin.settings.autoEmbedTopics = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-		new Setting(containerEl)
-			.setName("Infinite journal")
-			.setDesc("Enable the infinite-scrolling journal view of daily notes")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.infiniteJournal)
-				.onChange(async (value) => {
-					this.plugin.settings.infiniteJournal = value;
-					await this.plugin.saveSettings();
-					this.plugin.updateJournalRibbon();
-				}));
-
-		new Setting(containerEl)
-			.setName("Show relative dates")
-			.setDesc("Show journal day headers as Today, Yesterday, Last Friday, etc. instead of the raw date")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.journalRelativeDates)
-				.onChange(async (value) => {
-					this.plugin.settings.journalRelativeDates = value;
-					await this.plugin.saveSettings();
-					this.plugin.refreshJournalViews();
-				}));
-
-		new Setting(containerEl)
-			.setName("Replace daily note")
-			.setDesc("Open the infinite journal (scrolled to today) instead of a single note when using the Open today's daily note command")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.journalReplaceDailyNote)
-				.onChange(async (value) => {
-					this.plugin.settings.journalReplaceDailyNote = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName("Frequency-sorted link suggest")
-			.setDesc("Show link suggestions sorted by usage frequency after inserting a timestamp")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.frequencySuggestEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.frequencySuggestEnabled = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName("Space after log link")
-			.setDesc("After selecting a [[link]] suggestion on a log line (HH:MM [[link]]), insert a space so the value can be typed right away")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.spaceAfterLogLink)
-				.onChange(async (value) => {
-					this.plugin.settings.spaceAfterLogLink = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName("Default enabled group")
-			.setDesc("Group to enable on first load when no topics have tracking_visible_default set")
-			.addText(text => text
-				.setPlaceholder("mood")
-				.setValue(this.plugin.settings.defaultEnabledGroup)
-				.onChange(async (value) => {
-					this.plugin.settings.defaultEnabledGroup = value;
-					await this.plugin.saveSettings();
-				}));
+	private displayFeelingsWheel(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Feelings wheel");
 
 		new Setting(containerEl)
 			.setName("Show settings icon on wheel")
@@ -261,6 +296,9 @@ export class EmilySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		// Rolodex tuning is only shown when the 3D effect is "Shrink size"
+		let updateRolodexVisibility = () => {};
+
 		new Setting(containerEl)
 			.setName("Feelings wheel 3D effect")
 			.setDesc("How distant emotions visually recede from the indicator")
@@ -272,24 +310,23 @@ export class EmilySettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.feelingsWheel3d = value as "off" | "opacity" | "size";
 					await this.plugin.saveSettings();
+					updateRolodexVisibility();
 				}));
 
-		// Rolodex tuning — only shown when 3D effect is "Shrink size"
 		const rolodexSection = containerEl.createDiv();
-		const updateRolodexVisibility = () => {
+		updateRolodexVisibility = () => {
 			rolodexSection.style.display = this.plugin.settings.feelingsWheel3d === "size" ? "" : "none";
 		};
 		updateRolodexVisibility();
+		this.displayRolodexTuning(rolodexSection);
 
-		// Re-wire the dropdown above to toggle visibility
-		const dropdown3d = containerEl.querySelector(".setting-item:last-of-type .dropdown") as HTMLSelectElement | null;
-		if (dropdown3d) {
-			dropdown3d.addEventListener("change", updateRolodexVisibility);
-		}
+		this.displayWheelPhysics(containerEl);
+	}
 
-		rolodexSection.createEl("h3", {text: "Rolodex tuning"});
+	private displayRolodexTuning(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Rolodex tuning");
 
-		new Setting(rolodexSection)
+		new Setting(containerEl)
 			.setName("Sharpness")
 			.setDesc("How quickly neighbors shrink (higher = sharper falloff)")
 			.addText(text => text
@@ -302,7 +339,7 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
-		new Setting(rolodexSection)
+		new Setting(containerEl)
 			.setName("Floor")
 			.setDesc("Minimum size for distant segments (lower = thinner slivers)")
 			.addText(text => text
@@ -315,7 +352,7 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
-		new Setting(rolodexSection)
+		new Setting(containerEl)
 			.setName("Peak")
 			.setDesc("Extra size boost for the selected emotion (higher = bigger center)")
 			.addText(text => text
@@ -328,7 +365,7 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
-		new Setting(rolodexSection)
+		new Setting(containerEl)
 			.setName("Snap strength")
 			.setDesc("How strongly the wheel homes to center after a flick (0 = no snap, 0.1 = strong)")
 			.addText(text => text
@@ -341,7 +378,7 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
-		new Setting(rolodexSection)
+		new Setting(containerEl)
 			.setName("Resolution")
 			.setDesc("Lookup table size (higher = smoother transitions)")
 			.addText(text => text
@@ -354,74 +391,49 @@ export class EmilySettingTab extends PluginSettingTab {
 					}
 				}));
 
-		new Setting(rolodexSection)
-			.setName("Font scaling")
-			.setDesc(`How much text scales with segment size — 0 = uniform, 1 = fully proportional (default: ${DEFAULT_SETTINGS.rolodexFontScale})`)
-			.addText(text => text
-				.setValue(String(this.plugin.settings.rolodexFontScale))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num >= 0 && num <= 1) {
-						this.plugin.settings.rolodexFontScale = num;
+		const unitSetting = (
+			name: string, desc: string,
+			key: "rolodexFontScale" | "rolodexFontCeiling" | "rolodexWeightScale",
+		) => {
+			new Setting(containerEl)
+				.setName(name)
+				.setDesc(`${desc} (default: ${DEFAULT_SETTINGS[key]})`)
+				.addText(text => text
+					.setValue(String(this.plugin.settings[key]))
+					.onChange(async (value) => {
+						const num = parseFloat(value);
+						if (!isNaN(num) && num >= 0 && num <= 1) {
+							this.plugin.settings[key] = num;
+							await this.plugin.saveSettings();
+						}
+					}))
+				.addExtraButton(btn => btn
+					.setIcon("reset")
+					.setTooltip("Reset to default")
+					.onClick(async () => {
+						this.plugin.settings[key] = DEFAULT_SETTINGS[key];
 						await this.plugin.saveSettings();
-					}
-				}))
-			.addExtraButton(btn => btn
-				.setIcon("reset")
-				.setTooltip("Reset to default")
-				.onClick(async () => {
-					this.plugin.settings.rolodexFontScale = DEFAULT_SETTINGS.rolodexFontScale;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+						this.display();
+					}));
+		};
 
-		new Setting(rolodexSection)
-			.setName("Font ceiling")
-			.setDesc(`Max font growth multiplier — 0 = no growth, 1 = full growth (default: ${DEFAULT_SETTINGS.rolodexFontCeiling})`)
-			.addText(text => text
-				.setValue(String(this.plugin.settings.rolodexFontCeiling))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num >= 0 && num <= 1) {
-						this.plugin.settings.rolodexFontCeiling = num;
-						await this.plugin.saveSettings();
-					}
-				}))
-			.addExtraButton(btn => btn
-				.setIcon("reset")
-				.setTooltip("Reset to default")
-				.onClick(async () => {
-					this.plugin.settings.rolodexFontCeiling = DEFAULT_SETTINGS.rolodexFontCeiling;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+		unitSetting("Font scaling",
+			"How much text scales with segment size — 0 = uniform, 1 = fully proportional",
+			"rolodexFontScale");
 
-		new Setting(rolodexSection)
-			.setName("Weight scaling")
-			.setDesc(`Scale font weight with segment size — 0 = uniform (600), 1 = full range (300-900) (default: ${DEFAULT_SETTINGS.rolodexWeightScale})`)
-			.addText(text => text
-				.setValue(String(this.plugin.settings.rolodexWeightScale))
-				.onChange(async (value) => {
-					const num = parseFloat(value);
-					if (!isNaN(num) && num >= 0 && num <= 1) {
-						this.plugin.settings.rolodexWeightScale = num;
-						await this.plugin.saveSettings();
-					}
-				}))
-			.addExtraButton(btn => btn
-				.setIcon("reset")
-				.setTooltip("Reset to default")
-				.onClick(async () => {
-					this.plugin.settings.rolodexWeightScale = DEFAULT_SETTINGS.rolodexWeightScale;
-					await this.plugin.saveSettings();
-					this.display();
-				}));
+		unitSetting("Font ceiling",
+			"Max font growth multiplier — 0 = no growth, 1 = full growth",
+			"rolodexFontCeiling");
 
-		// Physics tuning section
-		const physicsSection = containerEl.createDiv();
-		physicsSection.createEl("h3", {text: "Wheel physics"});
+		unitSetting("Weight scaling",
+			"Scale font weight with segment size — 0 = uniform (600), 1 = full range (300-900)",
+			"rolodexWeightScale");
+	}
 
-		new Setting(physicsSection)
+	private displayWheelPhysics(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Wheel physics");
+
+		new Setting(containerEl)
 			.setName("Reset physics to defaults")
 			.setDesc("Restore all wheel physics settings to their default values")
 			.addButton(btn => btn
@@ -439,7 +451,7 @@ export class EmilySettingTab extends PluginSettingTab {
 			key: keyof EmilySettings,
 			validate: (n: number) => boolean,
 		) => {
-			new Setting(physicsSection)
+			new Setting(containerEl)
 				.setName(name)
 				.setDesc(`${desc} (default: ${DEFAULT_SETTINGS[key]})`)
 				.addText(text => text
