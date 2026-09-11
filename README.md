@@ -85,6 +85,27 @@ If you have multiple URLs, you can also do:
 }
 ```
 
+## Todoist completed-task export
+
+Off by default. When enabled in **Settings → Emily → Todoist**, the plugin writes
+the tasks you completed on a given day to their own note, e.g.
+`Journal/2026/2026-09-10-todoist.md`.
+
+- **What is sent, and where.** Only your Todoist API token, to
+  `api.todoist.com`, to read your completed tasks and project names. Nothing
+  from the vault is uploaded.
+- **The token** is stored unencrypted in this plugin's `data.json`, like any
+  other setting. Get one from Todoist → **Settings → Integrations → Developer**.
+- **When it fetches.** Lazily, one day at a time: opening a daily note, or
+  scrolling that day into the infinite journal. A day is fetched once and not
+  again while its export note exists; today refetches at most every 10 minutes.
+  Nothing runs on startup or on a timer.
+- **Catching up.** **Fetch previous days** exports everything from a given date
+  through today in one go, a few requests rather than one per day.
+- **Your notes are safe.** The export only writes notes carrying its own
+  `emily-todoist: true` frontmatter. A note you wrote at the same path is left
+  untouched. Days with no completed tasks don't create a note.
+
 ## API Documentation
 
 See https://docs.obsidian.md

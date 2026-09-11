@@ -139,7 +139,8 @@ function resolveTemplateFile(app: App, template: string): TFile | null {
 	return byPath instanceof TFile ? byPath : null;
 }
 
-async function ensureParentFolders(app: App, path: string): Promise<void> {
+/** Create every missing folder along `path` (which names a file). */
+export async function ensureParentFolders(app: App, path: string): Promise<void> {
 	const parts = path.split("/").slice(0, -1);
 	let current = "";
 	for (const part of parts) {

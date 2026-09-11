@@ -1,4 +1,5 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting, moment} from "obsidian";
+import {formatDatePath} from "./todoist/export";
 import type EmilyPlugin from "./main";
 import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
@@ -21,6 +22,7 @@ export class EmilySettingTab extends PluginSettingTab {
 		this.displayInfiniteJournal(containerEl);
 		this.displayTrackingChart(containerEl);
 		this.displayPlaces(containerEl);
+		this.displayTodoist(containerEl);
 		this.displayFeelingsWheel(containerEl);
 	}
 
@@ -60,6 +62,127 @@ export class EmilySettingTab extends PluginSettingTab {
 					this.plugin.settings.placeSnapMeters = isNaN(num) ? 0 : Math.max(0, num);
 					await this.plugin.saveSettings();
 				}));
+	}
+
+	private displayTodoist(containerEl: HTMLElement): void {
+		this.heading(containerEl, "Todoist");
+
+		new Setting(containerEl)
+			.setName("Export completed tasks")
+			.setDesc("Write the day's completed Todoist tasks to a note when that day's journal is opened. Sends the API token below to api.todoist.com; nothing else leaves the vault")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.todoistEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.todoistEnabled = value;
+					await this.plugin.saveSettings();
+					this.plugin.todoist.reset();
+				}));
+
+		new Setting(containerEl)
+			.setName("API token")
+			.setDesc("From Todoist \u2192 Settings \u2192 Integrations \u2192 Developer. Stored unencrypted in this plugin's data.json")
+			.addText(text => {
+				text.inputEl.type = "password";
+				text
+					.setPlaceholder("Paste your token")
+					.setValue(this.plugin.settings.todoistApiToken)
+					.onChange(async (value) => {
+						this.plugin.settings.todoistApiToken = value.trim();
+						await this.plugin.saveSettings();
+						this.plugin.todoist.reset();
+					});
+			});
+
+		const pathSetting = new Setting(containerEl)
+			.setName("Export note path")
+			.setDesc("");
+		const describePath = () => {
+			const resolved = formatDatePath(this.plugin.settings.todoistFileFormat, moment());
+			pathSetting.setDesc(
+				"Where the day's export note goes. Date tokens (YYYY, MM, DD, MMMM, ddd\u2026) are filled in; "
+				+ `everything else is literal, or use [brackets] to force it. Today: ${resolved}`,
+			);
+		};
+		describePath();
+		pathSetting.addText(text => text
+			.setPlaceholder(DEFAULT_SETTINGS.todoistFileFormat)
+			.setValue(this.plugin.settings.todoistFileFormat)
+			.onChange(async (value) => {
+				this.plugin.settings.todoistFileFormat = value;
+				describePath();
+				await this.plugin.saveSettings();
+				this.plugin.todoist.reset();
+			}));
+
+		new Setting(containerEl)
+			.setName("Group by project")
+			.setDesc("Put the tasks under a heading per Todoist project instead of one flat list")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.todoistGroupByProject)
+				.onChange(async (value) => {
+					this.plugin.settings.todoistGroupByProject = value;
+					await this.plugin.saveSettings();
+					this.plugin.todoist.reset();
+				}));
+
+		new Setting(containerEl)
+			.setName("Show completion times")
+			.setDesc("Prefix each task with the time it was checked off")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.todoistIncludeTime)
+				.onChange(async (value) => {
+					this.plugin.settings.todoistIncludeTime = value;
+					await this.plugin.saveSettings();
+					this.plugin.todoist.reset();
+				}));
+
+		this.displayTodoistBackfill(containerEl);
+	}
+
+	/**
+	 * One-time catch-up for days that were never opened. Runs in chunks, so a
+	 * long range is a handful of requests rather than one per day.
+	 */
+	private displayTodoistBackfill(containerEl: HTMLElement): void {
+		const setting = new Setting(containerEl)
+			.setName("Fetch previous days")
+			.setDesc("Export every day from this date through today, all at once. Days already exported are refreshed; notes not written by this export are left alone");
+
+		setting.addText(text => text
+			.setPlaceholder("YYYY-MM-DD")
+			.setValue(this.plugin.settings.todoistBackfillSince)
+			.onChange(async (value) => {
+				this.plugin.settings.todoistBackfillSince = value.trim();
+				await this.plugin.saveSettings();
+			}));
+
+		setting.addButton(btn => btn
+			.setButtonText("Fetch")
+			.onClick(async () => {
+				const since = this.plugin.settings.todoistBackfillSince;
+				if (!since) {
+					new Notice("Emily: enter a date to fetch back to");
+					return;
+				}
+				btn.setDisabled(true);
+				const original = "Fetch";
+				const notice = new Notice("Emily: fetching completed tasks\u2026", 0);
+				try {
+					const summary = await this.plugin.todoist.backfill(since, (p) => {
+						btn.setButtonText(`${p.done}/${p.total}`);
+						notice.setMessage(`Emily: ${p.done}/${p.total} days, ${p.written} notes written`);
+					});
+					const skipped = summary.skipped > 0 ? `, ${summary.skipped} left alone` : "";
+					notice.setMessage(`Emily: ${summary.total} days fetched, ${summary.written} notes written${skipped}`);
+				} catch (e) {
+					console.error("Emily: Todoist backfill failed", e);
+					notice.setMessage(`Emily: ${e instanceof Error ? e.message : "backfill failed"}`);
+				} finally {
+					window.setTimeout(() => notice.hide(), 8000);
+					btn.setButtonText(original);
+					btn.setDisabled(false);
+				}
+			}));
 	}
 
 	private heading(containerEl: HTMLElement, text: string): void {

@@ -1,4 +1,4 @@
-import {Editor, MarkdownView, Plugin, WorkspaceLeaf, debounce} from "obsidian";
+import {Editor, MarkdownView, Plugin, WorkspaceLeaf, debounce, moment} from "obsidian";
 import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
 import {EmilySettingTab} from "./settings";
@@ -10,11 +10,13 @@ import {FrequencyLinkSort} from "./suggest";
 import {feelingsHighlightPlugin} from "./feelings-highlight";
 import {timestampLinesPlugin} from "./timestamp-lines";
 import {patchFoldManager} from "./fold-properties";
-import {getDailyNotesConfig} from "./daily-notes";
+import {dailyNotePathToDateKey, getDailyNotesConfig} from "./daily-notes";
 import {registerEmilyUriHandler} from "./uri";
+import {TodoistService} from "./todoist/service";
 
 export default class EmilyPlugin extends Plugin {
 	settings: EmilySettings;
+	todoist: TodoistService;
 	private journalRibbonEl: HTMLElement | null = null;
 	private originalDailyNotesCallback: (() => unknown) | null = null;
 	private freqSort: FrequencyLinkSort | null = null;
@@ -22,6 +24,7 @@ export default class EmilyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.applyTimestampStyles();
+		this.todoist = new TodoistService(this);
 		// Patched before the workspace is restored so notes reopened at startup load folded too
 		this.register(patchFoldManager(this.app, () => this.settings.foldPropertiesByDefault));
 
@@ -198,6 +201,17 @@ export default class EmilyPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "refresh-todoist-export",
+			name: "Refresh Todoist completed tasks for this day",
+			icon: "refresh-cw",
+			checkCallback: (checking) => {
+				if (!this.todoist.enabled) return false;
+				if (!checking) void this.todoist.refreshDay(this.activeDateKey(), true);
+				return true;
+			},
+		});
+
+		this.addCommand({
 			id: "export-csv",
 			name: "Export current view as CSV",
 			checkCallback: (checking) => {
@@ -232,6 +246,15 @@ export default class EmilyPlugin extends Plugin {
 			renderEmbed(source, el, this.app, this.settings);
 		});
 
+		// Refresh a day's Todoist export when that day's note is opened
+		this.registerEvent(
+			this.app.workspace.on("file-open", (file) => {
+				if (!file) return;
+				const dateKey = dailyNotePathToDateKey(this.app, this.settings, file.path);
+				if (dateKey) void this.todoist.refreshDay(dateKey);
+			})
+		);
+
 		// Auto-embed on daily notes
 		const dataService = new DataService(this.app, this.settings);
 		this.registerEvent(
@@ -252,6 +275,13 @@ export default class EmilyPlugin extends Plugin {
 				this.injectAutoEmbed(view.file.path);
 			}, 500, true))
 		);
+	}
+
+	/** "YYYY-MM-DD" of the daily note in the active view, or today. */
+	private activeDateKey(): string {
+		const file = this.app.workspace.getActiveViewOfType(MarkdownView)?.file;
+		const fromFile = file ? dailyNotePathToDateKey(this.app, this.settings, file.path) : null;
+		return fromFile ?? moment().format("YYYY-MM-DD");
 	}
 
 	private injectAutoEmbed(filePath: string): void {

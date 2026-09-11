@@ -86,6 +86,18 @@ export interface EmilySettings {
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
+	/** Export the day's completed Todoist tasks to a note when that day is opened. */
+	todoistEnabled: boolean;
+	/** Todoist API token, stored in the plugin's data.json in plain text. */
+	todoistApiToken: string;
+	/** Vault path of the export note, with date tokens like YYYY-MM-DD. */
+	todoistFileFormat: string;
+	/** Put the exported tasks under a heading per Todoist project. */
+	todoistGroupByProject: boolean;
+	/** Prefix each exported task with the time it was completed. */
+	todoistIncludeTime: boolean;
+	/** Earliest date the one-time backfill reaches back to (YYYY-MM-DD). */
+	todoistBackfillSince: string;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -127,6 +139,12 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	infiniteJournal: true,
 	journalRelativeDates: true,
 	journalReplaceDailyNote: true,
+	todoistEnabled: false,
+	todoistApiToken: "",
+	todoistFileFormat: "Journal/YYYY/YYYY-MM-DD-todoist.md",
+	todoistGroupByProject: true,
+	todoistIncludeTime: true,
+	todoistBackfillSince: "",
 };
 
 export function hashTopicColor(name: string): string {

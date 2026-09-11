@@ -66,6 +66,7 @@ export class JournalView extends ItemView {
 	private extending = false;
 	private todayKey: string;
 	private settleStop: (() => void) | null = null;
+	private todoistObserver: IntersectionObserver | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: EmilyPlugin) {
 		super(leaf);
@@ -91,6 +92,14 @@ export class JournalView extends ItemView {
 		contentEl.addClass("emily-journal-view");
 
 		this.daysEl = contentEl.createEl("div", {cls: "emily-journal-days"});
+		this.todoistObserver = new IntersectionObserver(
+			(entries) => this.onDaysVisible(entries),
+			{root: contentEl},
+		);
+		this.register(() => {
+			this.todoistObserver?.disconnect();
+			this.todoistObserver = null;
+		});
 
 		await this.resetAroundToday();
 
@@ -203,6 +212,8 @@ export class JournalView extends ItemView {
 	}
 
 	private clearSections(): void {
+		// Sections are re-observed as they're rebuilt
+		this.todoistObserver?.disconnect();
 		for (const section of this.sections) {
 			if (section.component) this.removeChild(section.component);
 		}
@@ -301,7 +312,22 @@ export class JournalView extends ItemView {
 		});
 
 		this.applyHeader(section);
+		this.todoistObserver?.observe(el);
 		return section;
+	}
+
+	/**
+	 * A day scrolled into view counts as opening it, so its Todoist export
+	 * refreshes. The service de-duplicates, so a batch of sections arriving at
+	 * once still costs one request per day at most.
+	 */
+	private onDaysVisible(entries: IntersectionObserverEntry[]): void {
+		for (const entry of entries) {
+			if (!entry.isIntersecting) continue;
+			const dateKey = (entry.target as HTMLElement).dataset.date;
+			this.todoistObserver?.unobserve(entry.target);
+			if (dateKey) void this.plugin.todoist.refreshDay(dateKey);
+		}
 	}
 
 	private applyHeader(section: DaySection): void {
