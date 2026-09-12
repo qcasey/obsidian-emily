@@ -8,6 +8,7 @@ import {renderEmbed} from "./embed";
 import {DataService} from "./data-service";
 import {FrequencyLinkSort} from "./suggest";
 import {feelingsHighlightPlugin} from "./feelings-highlight";
+import {toggleFeelingBraces} from "./feelings-braces";
 import {timestampLinesPlugin} from "./timestamp-lines";
 import {patchFoldManager} from "./fold-properties";
 import {dailyNotePathToDateKey, getDailyNotesConfig} from "./daily-notes";
@@ -112,6 +113,8 @@ export default class EmilyPlugin extends Plugin {
 			name: "Show feelings wheel",
 			icon: "heart",
 			editorCallback: (editor: Editor) => {
+				// Selected text gets braced in place; the wheel is for a bare cursor
+				if (toggleFeelingBraces(editor)) return;
 				void this.openFeelingsWheel(editor);
 			},
 		});

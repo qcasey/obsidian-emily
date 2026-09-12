@@ -253,3 +253,26 @@ export function buildFlatSegments(): {
 
 	return {core, secondary, tertiary};
 }
+
+/** Lowercased name → the wheel's own spelling; built on first use. */
+let canonicalNames: Map<string, string> | null = null;
+
+/**
+ * The wheel's spelling of `name` ("happy" → "Happy"), or null when the name
+ * isn't on the wheel at all.
+ */
+export function canonicalFeeling(name: string): string | null {
+	if (!canonicalNames) {
+		canonicalNames = new Map();
+		for (const sector of FEELINGS_WHEEL) {
+			canonicalNames.set(sector.core.toLowerCase(), sector.core);
+			for (const sec of sector.secondary) {
+				canonicalNames.set(sec.label.toLowerCase(), sec.label);
+				for (const tertiary of sec.tertiary) {
+					canonicalNames.set(tertiary.toLowerCase(), tertiary);
+				}
+			}
+		}
+	}
+	return canonicalNames.get(name.trim().toLowerCase()) ?? null;
+}
