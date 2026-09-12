@@ -28,6 +28,10 @@ const FOCUS_RETRY_DELAYS = [0, 100, 300, 700, 1500];
  *                     heading of the same or higher level; text goes after its
  *                     last non-blank line so a trailing blank line is kept. A
  *                     heading that isn't in the note is created at the end.
+ * - `wheel=true`      open the feelings wheel once the cursor is in place, so
+ *                     the emotions land at the end of the line just appended
+ *                     (the editor is focused when the wheel closes instead of
+ *                     before it opens, so the keyboard doesn't cover it)
  *
  * Logging a place, e.g. from a Shortcut that knows where the phone is:
  *
@@ -89,7 +93,21 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 		moveCursorToEnd(editor);
 	}
 
+	if (isTrue(params.wheel)) {
+		// Focusing first would raise the mobile keyboard over the wheel, so the
+		// editor is only focused once the wheel is done with the cursor.
+		await plugin.openFeelingsWheel(editor, () => focusEditor(plugin, view));
+		return;
+	}
+
 	focusEditor(plugin, view);
+}
+
+/** A flag parameter counts as set for `wheel`, `wheel=true`, `wheel=1`, `wheel=yes`. */
+function isTrue(value: string | undefined): boolean {
+	if (value === undefined) return false;
+	const v = value.trim().toLowerCase();
+	return v === "" || v === "true" || v === "1" || v === "yes";
 }
 
 /**

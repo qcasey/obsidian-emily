@@ -111,51 +111,8 @@ export default class EmilyPlugin extends Plugin {
 			id: "show-feelings-wheel",
 			name: "Show feelings wheel",
 			icon: "heart",
-			editorCallback: async (editor: Editor) => {
-				// Loaded on first use so the wheel's code isn't evaluated at startup
-				const {FeelingsOverlay} = await import("./feelings-overlay");
-				const overlay = new FeelingsOverlay(
-					editor,
-					(emotions) => {
-						const joined = emotions.join(", ");
-						const raw = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
-						const cursor = editor.getCursor();
-						const line = editor.getLine(cursor.line);
-						const charBefore = cursor.ch > 0 ? line[cursor.ch - 1] : undefined;
-						const needsSpace = charBefore !== undefined && charBefore !== " " && charBefore !== "\t";
-						const text = needsSpace ? ` ${raw}` : raw;
-						editor.replaceRange(text, cursor);
-						const newCh = cursor.ch + text.length;
-						editor.setCursor({line: cursor.line, ch: newCh});
-					},
-					() => { /* cancelled */ },
-					this.settings.feelingsWheelZoom,
-					this.settings.feelingsWheel3d,
-					{
-						k: this.settings.rolodexK,
-						floor: this.settings.rolodexFloor,
-						peak: this.settings.rolodexPeak,
-						resolution: this.settings.rolodexResolution,
-						snap: this.settings.rolodexSnap,
-						fontScale: this.settings.rolodexFontScale,
-						fontCeiling: this.settings.rolodexFontCeiling,
-						weightScale: this.settings.rolodexWeightScale,
-					},
-					{
-						snap: this.settings.feelingsWheelSnap,
-						friction: this.settings.feelingsWheelFriction,
-						reach: this.settings.feelingsWheelReach,
-					},
-					this.settings.showWheelSettingsIcon
-						? () => {
-							// @ts-expect-error — Obsidian internal API
-							this.app.setting.open();
-							// @ts-expect-error — Obsidian internal API
-							this.app.setting.openTabById("emily");
-						}
-						: undefined,
-				);
-				overlay.open();
+			editorCallback: (editor: Editor) => {
+				void this.openFeelingsWheel(editor);
 			},
 		});
 
@@ -275,6 +232,59 @@ export default class EmilyPlugin extends Plugin {
 				this.injectAutoEmbed(view.file.path);
 			}, 500, true))
 		);
+	}
+
+	/**
+	 * Open the feelings wheel over the current view, inserting the chosen
+	 * emotions at the editor's cursor. `onFinish` runs once the overlay is on
+	 * its way out, whether emotions were inserted or it was dismissed.
+	 */
+	async openFeelingsWheel(editor: Editor, onFinish?: () => void): Promise<void> {
+		// Loaded on first use so the wheel's code isn't evaluated at startup
+		const {FeelingsOverlay} = await import("./feelings-overlay");
+		const overlay = new FeelingsOverlay(
+			editor,
+			(emotions) => {
+				const joined = emotions.join(", ");
+				const raw = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
+				const cursor = editor.getCursor();
+				const line = editor.getLine(cursor.line);
+				const charBefore = cursor.ch > 0 ? line[cursor.ch - 1] : undefined;
+				const needsSpace = charBefore !== undefined && charBefore !== " " && charBefore !== "\t";
+				const text = needsSpace ? ` ${raw}` : raw;
+				editor.replaceRange(text, cursor);
+				const newCh = cursor.ch + text.length;
+				editor.setCursor({line: cursor.line, ch: newCh});
+				onFinish?.();
+			},
+			() => onFinish?.(),
+			this.settings.feelingsWheelZoom,
+			this.settings.feelingsWheel3d,
+			{
+				k: this.settings.rolodexK,
+				floor: this.settings.rolodexFloor,
+				peak: this.settings.rolodexPeak,
+				resolution: this.settings.rolodexResolution,
+				snap: this.settings.rolodexSnap,
+				fontScale: this.settings.rolodexFontScale,
+				fontCeiling: this.settings.rolodexFontCeiling,
+				weightScale: this.settings.rolodexWeightScale,
+			},
+			{
+				snap: this.settings.feelingsWheelSnap,
+				friction: this.settings.feelingsWheelFriction,
+				reach: this.settings.feelingsWheelReach,
+			},
+			this.settings.showWheelSettingsIcon
+				? () => {
+					// @ts-expect-error — Obsidian internal API
+					this.app.setting.open();
+					// @ts-expect-error — Obsidian internal API
+					this.app.setting.openTabById("emily");
+				}
+				: undefined,
+		);
+		overlay.open();
 	}
 
 	/** "YYYY-MM-DD" of the daily note in the active view, or today. */
