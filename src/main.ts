@@ -1,4 +1,5 @@
 import {Editor, MarkdownView, Plugin, WorkspaceLeaf, debounce, moment} from "obsidian";
+import type {EditorPosition} from "obsidian";
 import {DEFAULT_SETTINGS} from "./types";
 import type {EmilySettings} from "./types";
 import {EmilySettingTab} from "./settings";
@@ -239,10 +240,14 @@ export default class EmilyPlugin extends Plugin {
 
 	/**
 	 * Open the feelings wheel over the current view, inserting the chosen
-	 * emotions at the editor's cursor. `onFinish` runs once the overlay is on
-	 * its way out, whether emotions were inserted or it was dismissed.
+	 * emotions at `at`, or at the cursor when no position is given. Callers
+	 * that know where the emotions belong should say so: the wheel is up for
+	 * as long as it takes to choose, and the cursor can move meanwhile.
+	 * `onFinish` runs once the overlay is on its way out, whether emotions
+	 * were inserted or it was dismissed.
 	 */
-	async openFeelingsWheel(editor: Editor, onFinish?: () => void): Promise<void> {
+	async openFeelingsWheel(editor: Editor, options: {at?: EditorPosition; onFinish?: () => void} = {}): Promise<void> {
+		const {at, onFinish} = options;
 		// Loaded on first use so the wheel's code isn't evaluated at startup
 		const {FeelingsOverlay} = await import("./feelings-overlay");
 		const overlay = new FeelingsOverlay(
@@ -250,7 +255,7 @@ export default class EmilyPlugin extends Plugin {
 			(emotions) => {
 				const joined = emotions.join(", ");
 				const raw = this.settings.insertBetweenBraces ? `{${joined}}` : joined;
-				const cursor = editor.getCursor();
+				const cursor = at ?? editor.getCursor();
 				const line = editor.getLine(cursor.line);
 				const charBefore = cursor.ch > 0 ? line[cursor.ch - 1] : undefined;
 				const needsSpace = charBefore !== undefined && charBefore !== " " && charBefore !== "\t";

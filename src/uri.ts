@@ -1,14 +1,10 @@
 import {MarkdownView, Notice, TFile, moment, normalizePath} from "obsidian";
-import type {App, ObsidianProtocolData} from "obsidian";
+import type {App, EditorPosition, ObsidianProtocolData} from "obsidian";
 import type EmilyPlugin from "./main";
 import {createDailyNote} from "./daily-notes";
 import {createPlaceNote, findNearestPlace, parseLatLng} from "./places";
 
-/**
- * Delays (ms) at which the editor is re-focused after opening. On mobile the
- * editor view is often still being attached when the handler runs, especially
- * on a cold launch, and a single `focus()` call goes nowhere.
- */
+/** Delays (ms) at which the editor is focused and the cursor re-asserted. */
 const FOCUS_RETRY_DELAYS = [0, 100, 300, 700, 1500];
 
 /**
@@ -79,6 +75,7 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 		data = `${timestampNow()} [[${placeFile.basename}]]${data ? ` ${data}` : ""}`;
 		headingParam ??= settings.placesHeading;
 	}
+	let target: EditorPosition;
 	if (mode === "append" && data) {
 		const heading = parseHeadingParam(headingParam);
 		const anchor = heading ? findSectionEnd(editor, heading) : null;
@@ -87,20 +84,22 @@ async function handle(plugin: EmilyPlugin, params: ObsidianProtocolData): Promis
 			appendAt(editor, editor.lastLine(), settings.insertBlankLine, `${"#".repeat(heading.level)} ${heading.text}`);
 		}
 		const line = anchor ?? editor.lastLine();
-		const end = appendAt(editor, line, settings.insertBlankLine, data);
-		editor.setCursor(end);
+		target = appendAt(editor, line, settings.insertBlankLine, data);
 	} else {
-		moveCursorToEnd(editor);
+		target = endOfNote(editor);
 	}
+	editor.setCursor(target);
 
 	if (isTrue(params.wheel)) {
 		// Focusing first would raise the mobile keyboard over the wheel, so the
-		// editor is only focused once the wheel is done with the cursor.
-		await plugin.openFeelingsWheel(editor, () => focusEditor(plugin, view));
+		// editor is only focused once the wheel is done. The emotions are
+		// anchored to `target` rather than the cursor, which Obsidian may have
+		// moved back to where the note was last left while the wheel was up.
+		await plugin.openFeelingsWheel(editor, {at: target, onFinish: () => settleEditor(plugin, view)});
 		return;
 	}
 
-	focusEditor(plugin, view);
+	settleEditor(plugin, view, target);
 }
 
 /** A flag parameter counts as set for `wheel`, `wheel=true`, `wheel=1`, `wheel=yes`. */
@@ -187,7 +186,7 @@ function findSectionEnd(editor: MarkdownView["editor"], heading: HeadingSpec): n
  * setting asks for one and there isn't one already. Returns the end position
  * of the inserted text.
  */
-function appendAt(editor: MarkdownView["editor"], line: number, blankLine: boolean, text: string): {line: number; ch: number} {
+function appendAt(editor: MarkdownView["editor"], line: number, blankLine: boolean, text: string): EditorPosition {
 	const lineText = editor.getLine(line);
 	let prefix = "";
 	if (lineText.trim() !== "") {
@@ -215,20 +214,34 @@ async function resolveTarget(app: App, plugin: EmilyPlugin, params: ObsidianProt
 	return createDailyNote(app, plugin.settings, moment());
 }
 
-function moveCursorToEnd(editor: MarkdownView["editor"]): void {
+function endOfNote(editor: MarkdownView["editor"]): EditorPosition {
 	const lastLine = editor.lastLine();
-	editor.setCursor({line: lastLine, ch: editor.getLine(lastLine).length});
+	return {line: lastLine, ch: editor.getLine(lastLine).length};
 }
 
 /**
- * Focus the editor now and again over the next second or so. Any attempt that
- * lands after the view is attached wins; the extra calls are harmless once
- * the editor already has focus.
+ * Focus the editor — and hold the cursor at `target`, when there is one — now
+ * and again over the next second or so.
+ *
+ * Two things need the retries. On mobile the editor view is often still being
+ * attached when the handler runs, so a single `focus()` goes nowhere. And
+ * Obsidian restores the note's remembered cursor position once the file has
+ * finished opening, which lands after the text is appended and would
+ * otherwise leave the cursor — and whatever is typed next — back wherever the
+ * note was last left. Attempts stop as soon as the note changes under us, so
+ * someone who starts typing straight away isn't yanked back.
  */
-function focusEditor(plugin: EmilyPlugin, view: MarkdownView): void {
+function settleEditor(plugin: EmilyPlugin, view: MarkdownView, target?: EditorPosition): void {
+	const editor = view.editor;
+	const doc = target ? editor.getValue() : null;
 	const attempt = () => {
 		if (plugin.app.workspace.getActiveViewOfType(MarkdownView) !== view) return;
-		view.editor.focus();
+		if (target) {
+			if (editor.getValue() !== doc) return;
+			const cursor = editor.getCursor();
+			if (cursor.line !== target.line || cursor.ch !== target.ch) editor.setCursor(target);
+		}
+		editor.focus();
 	};
 	for (const delay of FOCUS_RETRY_DELAYS) {
 		window.setTimeout(attempt, delay);
