@@ -71,16 +71,29 @@ export function groupByDay(tasks: CompletedTask[]): Map<string, CompletedTask[]>
 
 /**
  * The full note body for a day. Deterministic: the same tasks always render
- * the same text, so an unchanged day never rewrites the file.
+ * the same text, so an unchanged day never rewrites the file. `dailyNote` is
+ * the name of the day's daily note, linked from the frontmatter so the export
+ * shows up in that note's backlinks.
  */
 export function renderExport(
 	settings: EmilySettings,
 	dateKey: string,
+	dailyNote: string,
 	tasks: CompletedTask[],
 	projectNames: Map<string, string>,
 ): string {
 	const sorted = tasks.slice().sort(compareTasks);
-	const lines = ["---", `${MARKER_KEY}: true`, `date: ${dateKey}`, "---", "", TITLE, ""];
+	const lines = [
+		"---",
+		`${MARKER_KEY}: true`,
+		`date: ${dateKey}`,
+		"links:",
+		`  - "[[${dailyNote}]]"`,
+		"---",
+		"",
+		TITLE,
+		"",
+	];
 
 	if (sorted.length === 0) {
 		lines.push("No completed tasks.", "");

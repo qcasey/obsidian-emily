@@ -105,6 +105,9 @@ the tasks you completed on a given day to their own note, e.g.
 - **Your notes are safe.** The export only writes notes carrying its own
   `emily-todoist: true` frontmatter. A note you wrote at the same path is left
   untouched. Days with no completed tasks don't create a note.
+- **Linked to the day.** Each export note's frontmatter carries a `links`
+  entry pointing at that day's daily note, so it shows up in the daily note's
+  backlinks.
 
 ## API Documentation
 

@@ -1,5 +1,6 @@
 import {Notice, moment} from "obsidian";
 import type EmilyPlugin from "../main";
+import {dailyNoteBasename} from "../daily-notes";
 import type {CompletedTask} from "./api";
 import {MAX_RANGE_DAYS, TodoistApiError, fetchCompletedTasks, fetchProjects} from "./api";
 import {exportPath, groupByDay, renderExport, writeExport} from "./export";
@@ -170,8 +171,9 @@ export class TodoistService {
 		names: Map<string, string>,
 	): Promise<WriteResult> {
 		const {app, settings} = this.plugin;
-		const path = exportPath(settings, moment(dateKey, "YYYY-MM-DD"));
-		const body = renderExport(settings, dateKey, tasks, names);
+		const day = moment(dateKey, "YYYY-MM-DD");
+		const path = exportPath(settings, day);
+		const body = renderExport(settings, dateKey, dailyNoteBasename(app, settings, day), tasks, names);
 		const result = await writeExport(app, path, body, tasks.length > 0);
 		if (result === "foreign") {
 			console.warn(`Emily: ${path} wasn't written by the Todoist export; leaving it alone`);
