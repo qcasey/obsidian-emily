@@ -1,6 +1,7 @@
 import {Notice, moment} from "obsidian";
 import type EmilyPlugin from "../main";
-import {dailyNoteBasename} from "../daily-notes";
+import {dailyNoteBasename, getDailyNoteFile} from "../daily-notes";
+import type {Moment} from "../daily-notes";
 import type {CompletedTask} from "./api";
 import {MAX_RANGE_DAYS, TodoistApiError, fetchCompletedTasks, fetchProjects} from "./api";
 import {exportPath, groupByDay, renderExport, writeExport} from "./export";
@@ -8,6 +9,9 @@ import type {WriteResult} from "./export";
 
 /** How long today's export stays fresh before reopening the note refetches it. */
 const TODAY_COOLDOWN_MS = 10 * 60_000;
+
+/** Days (today included) caught up whenever any day is opened, on the same cooldown. */
+const RECENT_DAYS = 14;
 
 /** Project names change rarely; re-read them at most this often. */
 const PROJECTS_TTL_MS = 60 * 60_000;
@@ -30,9 +34,10 @@ export interface BackfillSummary extends BackfillProgress {
  * Keeps the per-day Todoist export notes up to date.
  *
  * Days are refreshed lazily — opening a daily note (or scrolling its section
- * into the infinite journal) fetches that one day. Requests are serialized and
- * de-duplicated so a journal rendering a week's worth of sections still makes
- * one request per day, at most.
+ * into the infinite journal) fetches that day, and also catches up the last
+ * two weeks of days that have a daily note in a single request. Requests are
+ * serialized and de-duplicated so a journal rendering a week's worth of
+ * sections still makes one request per day, at most.
  */
 export class TodoistService {
 	private queue: Promise<unknown> = Promise.resolve();
@@ -40,6 +45,7 @@ export class TodoistService {
 	private projectNames = new Map<string, string>();
 	private projectsFetchedAt = 0;
 	private lastNoticeAt = 0;
+	private recentFetchedAt = 0;
 	private backfilling = false;
 	/** Set when Todoist rejects the token, so a scrolling journal stops retrying. */
 	private authFailed = false;
@@ -56,18 +62,24 @@ export class TodoistService {
 		this.fetched.clear();
 		this.projectNames.clear();
 		this.projectsFetchedAt = 0;
+		this.recentFetchedAt = 0;
 		this.lastNoticeAt = 0;
 		this.authFailed = false;
 	}
 
 	/**
 	 * Refresh the export note for one day, unless it was already fetched
-	 * recently. `force` bypasses every freshness check.
+	 * recently, along with the recent days that have a daily note. `force`
+	 * bypasses every freshness check.
 	 */
 	refreshDay(dateKey: string, force = false): Promise<void> {
 		// An explicit refresh is also a retry after a rejected token
 		if (force) this.authFailed = false;
 		if (!this.enabled || this.backfilling || this.authFailed) return Promise.resolve();
+
+		// Any open also catches up the recent days, which marks them fetched
+		const recent = this.refreshRecent(force);
+		if (recent.covered.has(dateKey)) return recent.done;
 		if (!force && !this.needsRefresh(dateKey)) return Promise.resolve();
 
 		// Future days can't have completions yet
@@ -82,6 +94,56 @@ export class TodoistService {
 				this.reportError(e);
 			}
 		});
+	}
+
+	/**
+	 * Re-export the last `RECENT_DAYS` days (today included) that have a daily
+	 * note, in one request. Unlike a lone past day, these are rewritten even
+	 * when an export already exists, so tasks completed after a day was last
+	 * opened still land. `covered` is the days this call took on; it's empty
+	 * while the cooldown holds.
+	 */
+	private refreshRecent(force: boolean): {covered: Set<string>; done: Promise<void>} {
+		const covered = new Set<string>();
+		const idle = {covered, done: Promise.resolve()};
+		if (!force && Date.now() - this.recentFetchedAt < TODAY_COOLDOWN_MS) return idle;
+
+		const {app, settings} = this.plugin;
+		const today = moment().startOf("day");
+		const day = today.clone().subtract(RECENT_DAYS - 1, "days");
+		let first: Moment | null = null;
+		let last = day;
+		while (day.isSameOrBefore(today, "day")) {
+			if (getDailyNoteFile(app, settings, day)) {
+				covered.add(day.format("YYYY-MM-DD"));
+				first ??= day.clone();
+				last = day.clone();
+			}
+			day.add(1, "day");
+		}
+		if (!first) return idle;
+
+		const since = utcBound(first);
+		const until = utcBound(last.clone().add(1, "day"));
+		const now = Date.now();
+		this.recentFetchedAt = now;
+		for (const dateKey of covered) this.fetched.set(dateKey, now);
+
+		const done = this.enqueue(async () => {
+			try {
+				const tasks = await fetchCompletedTasks(settings.todoistApiToken.trim(), since, until);
+				const byDay = groupByDay(tasks);
+				const names = await this.projects();
+				for (const dateKey of covered) {
+					await this.writeDay(dateKey, byDay.get(dateKey) ?? [], names);
+				}
+			} catch (e) {
+				this.recentFetchedAt = 0;
+				for (const dateKey of covered) this.fetched.delete(dateKey);
+				this.reportError(e);
+			}
+		});
+		return {covered, done};
 	}
 
 	/**

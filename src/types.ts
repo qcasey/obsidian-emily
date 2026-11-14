@@ -86,7 +86,7 @@ export interface EmilySettings {
 	infiniteJournal: boolean;
 	journalRelativeDates: boolean;
 	journalReplaceDailyNote: boolean;
-	/** Export the day's completed Todoist tasks to a note when that day is opened. */
+	/** Export completed Todoist tasks to per-day notes when a day is opened (that day, plus the last 14 with a daily note). */
 	todoistEnabled: boolean;
 	/** Todoist API token, stored in the plugin's data.json in plain text. */
 	todoistApiToken: string;

@@ -96,9 +96,11 @@ the tasks you completed on a given day to their own note, e.g.
   from the vault is uploaded.
 - **The token** is stored unencrypted in this plugin's `data.json`, like any
   other setting. Get one from Todoist → **Settings → Integrations → Developer**.
-- **When it fetches.** Lazily, one day at a time: opening a daily note, or
-  scrolling that day into the infinite journal. A day is fetched once and not
-  again while its export note exists; today refetches at most every 10 minutes.
+- **When it fetches.** Lazily: opening a daily note, or scrolling a day into
+  the infinite journal. That fetches the day itself and, in one extra request
+  at most every 10 minutes, the last 14 days (today included) that have a
+  daily note, so tasks completed after a day was last opened still land. An
+  older day is fetched once and not again while its export note exists.
   Nothing runs on startup or on a timer.
 - **Catching up.** **Fetch previous days** exports everything from a given date
   through today in one go, a few requests rather than one per day.

@@ -69,7 +69,7 @@ export class EmilySettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Export completed tasks")
-			.setDesc("Write the day's completed Todoist tasks to a note when that day's journal is opened. Sends the API token below to api.todoist.com; nothing else leaves the vault")
+			.setDesc("Write the day's completed Todoist tasks to a note when that day's journal is opened, and catch up the last 14 days that have a daily note. Sends the API token below to api.todoist.com; nothing else leaves the vault")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.todoistEnabled)
 				.onChange(async (value) => {
