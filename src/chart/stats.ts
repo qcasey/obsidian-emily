@@ -26,8 +26,6 @@ export function renderStats(container: HTMLElement, options: StatsOptions): void
 		if (entries.length === 0) continue;
 
 		const card = grid.createEl("div", {cls: "emily-stat-card"});
-		card.style.borderLeftColor = topic.config.color;
-
 		const header = card.createEl("div", {cls: "emily-stat-header"});
 		const dot = header.createEl("span", {cls: "emily-stat-dot"});
 		dot.style.backgroundColor = topic.config.color;
@@ -139,7 +137,8 @@ function renderSparkline(container: HTMLElement, entries: {value: number; timest
 		.append("svg")
 		.attr("width", width)
 		.attr("height", height)
-		.attr("viewBox", `0 0 ${width} ${height}`);
+		.attr("viewBox", `0 0 ${width} ${height}`)
+		.attr("preserveAspectRatio", "none");
 
 	const xScale = d3.scaleLinear()
 		.domain(d3.extent(entries, d => d.timestamp) as [number, number])
@@ -160,6 +159,7 @@ function renderSparkline(container: HTMLElement, entries: {value: number; timest
 		.datum(entries)
 		.attr("fill", "none")
 		.attr("stroke", color)
-		.attr("stroke-width", 1.5)
+		.attr("stroke-width", 1.25)
+		.attr("vector-effect", "non-scaling-stroke")
 		.attr("d", line);
 }

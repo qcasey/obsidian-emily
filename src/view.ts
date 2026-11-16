@@ -1,6 +1,6 @@
 import {ItemView, WorkspaceLeaf, debounce} from "obsidian";
 import type EmilyPlugin from "./main";
-import type {DateRange, ResolvedTopic, TrackingEntry} from "./types";
+import type {AggregateMode, DateRange, DisplayType, ResolvedTopic, TrackingEntry} from "./types";
 import {DataService} from "./data-service";
 import {renderTimeline} from "./chart/timeline";
 import {renderStats} from "./chart/stats";
@@ -8,22 +8,40 @@ import {renderCorrelation} from "./chart/correlation";
 import {renderHeatmap} from "./chart/heatmap";
 import {renderTimeOfDay} from "./chart/timeofday";
 import {getTheme} from "./chart/theme";
+import {endOfDay, formatDateKey, isUsableDateKey, rangeForDays, restoreRange, serializeRange, startOfDay} from "./chart-state";
 
 export const VIEW_TYPE_EMILY = "emily-tracker";
+
+const PRESET_DAYS = [1, 7, 14, 30, 90, 365];
+const UNGROUPED = "Other";
+
+function presetLabel(days: number): string {
+	return days === 365 ? "1y" : `${days}d`;
+}
+
+type SectionKey = "correlation" | "heatmap" | "timeOfDay";
 
 export class TrackingView extends ItemView {
 	private plugin: EmilyPlugin;
 	private dataService: DataService;
 	private topics: ResolvedTopic[] = [];
 	private enabledTopics: Set<string> = new Set();
-	private typeOverrides: Map<string, "range" | "spike" | "spike_full"> = new Map();
-	private aggOverrides: Map<string, "none" | "sum" | "average"> = new Map();
-	private sectionToggles = {correlation: true, heatmap: true, timeOfDay: true};
+	private typeOverrides: Map<string, DisplayType> = new Map();
+	private aggOverrides: Map<string, AggregateMode> = new Map();
+	private sectionToggles: Record<SectionKey, boolean> = {correlation: true, heatmap: true, timeOfDay: true};
 	private dateRange: DateRange;
+	/** The rolling "last N days" preset in use, or null for hand-picked dates. */
+	private presetDays: number | null;
+	private persist = debounce(() => this.saveState(), 500, true);
 	private resizeObserver: ResizeObserver | null = null;
 
 	// DOM elements
 	private toolbarEl: HTMLElement;
+	private startInput: HTMLInputElement;
+	private endInput: HTMLInputElement;
+	private dateInputsEl: HTMLElement;
+	private presetBtns: Map<number, HTMLElement> = new Map();
+	private sectionBtns: Map<SectionKey, HTMLElement> = new Map();
 	private chartEl: HTMLElement;
 	private correlationEl: HTMLElement;
 	private heatmapEl: HTMLElement;
@@ -38,13 +56,29 @@ export class TrackingView extends ItemView {
 		this.plugin = plugin;
 		this.dataService = new DataService(this.app, plugin.settings);
 
-		const now = new Date();
-		const start = new Date(now);
-		start.setDate(start.getDate() - (plugin.settings.defaultDateRangeDays - 1));
-		start.setHours(0, 0, 0, 0);
-		const end = new Date(now);
-		end.setHours(23, 59, 59, 999);
-		this.dateRange = {start, end};
+		// Reopen with whatever was showing last time
+		const saved = plugin.settings.chartState;
+		const restored = restoreRange(saved, plugin.settings.defaultDateRangeDays);
+		this.dateRange = restored.range;
+		this.presetDays = restored.presetDays;
+		if (saved) {
+			this.enabledTopics = new Set(saved.enabledTopics ?? []);
+			this.sectionToggles = {...this.sectionToggles, ...saved.sections};
+			this.typeOverrides = new Map(Object.entries(saved.typeOverrides ?? {}));
+			this.aggOverrides = new Map(Object.entries(saved.aggOverrides ?? {}));
+			this.hasInitialized = true;
+		}
+	}
+
+	private saveState(): void {
+		this.plugin.settings.chartState = {
+			...serializeRange(this.dateRange, this.presetDays),
+			enabledTopics: [...this.enabledTopics].sort(),
+			sections: {...this.sectionToggles},
+			typeOverrides: Object.fromEntries(this.typeOverrides),
+			aggOverrides: Object.fromEntries(this.aggOverrides),
+		};
+		void this.plugin.saveSettings();
 	}
 
 	getViewType(): string {
@@ -115,138 +149,177 @@ export class TrackingView extends ItemView {
 
 	async onClose(): Promise<void> {
 		this.resizeObserver?.disconnect();
+		this.persist.run();
 	}
 
+	/** Built once: rebuilding it would throw away a date input that is being typed into. */
 	private buildToolbar(): void {
 		this.toolbarEl.empty();
+		this.presetBtns.clear();
+		this.sectionBtns.clear();
 
 		const presets = this.toolbarEl.createEl("div", {cls: "emily-presets"});
-		for (const days of [1, 7, 14, 30, 90]) {
+		for (const days of PRESET_DAYS) {
 			const btn = presets.createEl("button", {
 				cls: "emily-preset-btn",
-				text: `${days}d`,
+				text: presetLabel(days),
 			});
-			if (this.getDaySpan() === days) {
-				btn.addClass("emily-preset-active");
-			}
 			btn.addEventListener("click", () => this.setRange(days));
+			this.presetBtns.set(days, btn);
 		}
 
-		// Desktop: date inputs
-		const custom = this.toolbarEl.createEl("div", {cls: "emily-date-inputs"});
+		// Hand-picked dates
+		const custom = this.dateInputsEl = this.toolbarEl.createEl("div", {cls: "emily-date-inputs"});
 
-		const startInput = custom.createEl("input", {type: "date"});
-		startInput.value = this.formatDateInput(this.dateRange.start);
-		startInput.addEventListener("change", () => {
-			this.dateRange.start = new Date(startInput.value + "T00:00:00");
-			this.refresh();
-		});
+		this.startInput = custom.createEl("input", {type: "date"});
+		this.startInput.addEventListener("change", () => this.onDateInput());
 
 		custom.createEl("span", {cls: "emily-date-sep", text: "to"});
 
-		const endInput = custom.createEl("input", {type: "date"});
-		endInput.value = this.formatDateInput(this.dateRange.end);
-		endInput.addEventListener("change", () => {
-			this.dateRange.end = new Date(endInput.value + "T23:59:59");
-			this.refresh();
-		});
+		this.endInput = custom.createEl("input", {type: "date"});
+		this.endInput.addEventListener("change", () => this.onDateInput());
 
 		// Section toggles
 		const sections = this.toolbarEl.createEl("div", {cls: "emily-section-toggles"});
-		for (const [key, label] of [["correlation", "Corr"], ["heatmap", "Heat"], ["timeOfDay", "Time"]] as const) {
+		for (const [key, label] of [["correlation", "Correlations"], ["heatmap", "Heatmap"], ["timeOfDay", "Time of day"]] as const) {
 			const btn = sections.createEl("button", {
 				cls: "emily-preset-btn",
 				text: label,
 			});
-			if (this.sectionToggles[key]) btn.addClass("emily-preset-active");
 			btn.addEventListener("click", () => {
 				this.sectionToggles[key] = !this.sectionToggles[key];
-				this.buildToolbar();
+				this.persist();
+				this.syncToolbar();
 				this.render();
 			});
+			this.sectionBtns.set(key, btn);
 		}
 
-		// Mobile: preset dropdown (replaces buttons)
-		const mobilePresets = this.toolbarEl.createEl("div", {cls: "emily-preset-dropdown"});
-		const presetSelect = mobilePresets.createEl("select");
-		for (const days of [1, 7, 14, 30, 90]) {
-			const opt = presetSelect.createEl("option", {value: String(days), text: `${days}d`});
-			if (this.getDaySpan() === days) opt.selected = true;
+		this.syncToolbar();
+	}
+
+	/** Bring the toolbar in line with the current range and sections without rebuilding it. */
+	private syncToolbar(force = false): void {
+		for (const [days, btn] of this.presetBtns) {
+			btn.toggleClass("emily-preset-active", this.presetDays === days);
 		}
-		presetSelect.addEventListener("change", () => {
-			this.setRange(parseInt(presetSelect.value, 10));
-		});
+		for (const [key, btn] of this.sectionBtns) {
+			btn.toggleClass("emily-preset-active", this.sectionToggles[key]);
+		}
+		this.dateInputsEl.toggleClass("emily-preset-active", this.presetDays === null);
+
+		// Leave a field alone while it is being edited, unless a preset just replaced the range
+		const start = formatDateKey(this.dateRange.start);
+		if ((force || document.activeElement !== this.startInput) && this.startInput.value !== start) {
+			this.startInput.value = start;
+		}
+		const end = formatDateKey(this.dateRange.end);
+		if ((force || document.activeElement !== this.endInput) && this.endInput.value !== end) {
+			this.endInput.value = end;
+		}
+	}
+
+	private onDateInput(): void {
+		const start = this.startInput.value;
+		const end = this.endInput.value;
+		// Half-typed dates (an empty field, a year of 0002) are not a choice yet
+		if (!isUsableDateKey(start) || !isUsableDateKey(end)) return;
+
+		this.dateRange = {start: startOfDay(start), end: endOfDay(end)};
+		this.presetDays = null;
+		this.persist();
+		void this.refresh();
+	}
+
+	/** Turn topics on or off, then redraw and remember the choice. */
+	private setTopicsEnabled(names: string[], enabled: boolean): void {
+		for (const name of names) {
+			if (enabled) this.enabledTopics.add(name);
+			else this.enabledTopics.delete(name);
+		}
+		this.persist();
+		this.buildLegend();
+		this.render();
+	}
+
+	/** Topics by category, in name order, with uncategorized topics last. A topic in two categories is listed in both. */
+	private groupTopics(): [string, ResolvedTopic[]][] {
+		const byGroup = new Map<string, ResolvedTopic[]>();
+		const ungrouped: ResolvedTopic[] = [];
+		for (const topic of this.topics) {
+			if (topic.config.group.length === 0) {
+				ungrouped.push(topic);
+				continue;
+			}
+			for (const group of new Set(topic.config.group)) {
+				const list = byGroup.get(group);
+				if (list) list.push(topic);
+				else byGroup.set(group, [topic]);
+			}
+		}
+		const groups = [...byGroup.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+		if (ungrouped.length > 0) groups.push([UNGROUPED, ungrouped]);
+		return groups;
 	}
 
 	private buildLegend(): void {
 		this.legendEl.empty();
+		if (this.topics.length === 0) return;
 
-		// Toggle all button
-		const allEnabled = this.topics.every(t => this.enabledTopics.has(t.name));
-		const toggleAll = this.legendEl.createEl("button", {
+		const groups = this.groupTopics();
+		const names = this.topics.map(t => t.name);
+
+		// Everything on or off
+		const allEnabled = names.every(n => this.enabledTopics.has(n));
+		const allRow = this.legendEl.createEl("div", {cls: "emily-legend-group"});
+		const toggleAll = allRow.createEl("button", {
 			cls: "emily-legend-item emily-toggle-all",
 			text: allEnabled ? "None" : "All",
 		});
-		toggleAll.addEventListener("click", () => {
-			if (allEnabled) {
-				this.enabledTopics.clear();
-			} else {
-				this.enabledTopics = new Set(this.topics.map(t => t.name));
-			}
-			this.buildLegend();
-			this.render();
-		});
+		toggleAll.addEventListener("click", () => this.setTopicsEnabled(names, !allEnabled));
 
-		// Group toggle buttons
-		const groups = new Set(this.topics.flatMap(t => t.config.group));
-		for (const group of groups) {
-			const groupTopics = this.topics.filter(t => t.config.group.includes(group));
-			const allGroupEnabled = groupTopics.every(t => this.enabledTopics.has(t.name));
-			const groupBtn = this.legendEl.createEl("button", {
-				cls: "emily-legend-item emily-toggle-group",
-				text: group,
-			});
-			if (!allGroupEnabled) groupBtn.addClass("emily-legend-disabled");
-			groupBtn.addEventListener("click", () => {
-				for (const t of groupTopics) {
-					if (allGroupEnabled) {
-						this.enabledTopics.delete(t.name);
-					} else {
-						this.enabledTopics.add(t.name);
-					}
-				}
-				this.buildLegend();
-				this.render();
-			});
-		}
+		for (const [group, groupTopics] of groups) {
+			const row = this.legendEl.createEl("div", {cls: "emily-legend-group"});
 
-		for (const topic of this.topics) {
-			const item = this.legendEl.createEl("button", {cls: "emily-legend-item"});
-			item.style.setProperty("--emily-topic-color", topic.config.color);
-			if (!this.enabledTopics.has(topic.name)) {
-				item.addClass("emily-legend-disabled");
+			// A lone "Other" row needs no switch of its own: All/None already covers it
+			if (groups.length > 1 || group !== UNGROUPED) {
+				const groupNames = groupTopics.map(t => t.name);
+				const enabledCount = groupNames.filter(n => this.enabledTopics.has(n)).length;
+				const allGroupEnabled = enabledCount === groupNames.length;
+				const groupBtn = row.createEl("button", {
+					cls: "emily-legend-item emily-toggle-group",
+					text: group,
+				});
+				groupBtn.setAttribute("aria-pressed", String(allGroupEnabled));
+				groupBtn.setAttribute("aria-label", allGroupEnabled ? `Hide all ${group} topics` : `Show all ${group} topics`);
+				if (enabledCount === 0) groupBtn.addClass("emily-legend-disabled");
+				else if (!allGroupEnabled) groupBtn.addClass("emily-legend-partial");
+				groupBtn.addEventListener("click", () => this.setTopicsEnabled(groupNames, !allGroupEnabled));
 			}
 
-			const dot = item.createEl("span", {cls: "emily-legend-dot"});
-			dot.style.backgroundColor = topic.config.color;
+			const items = row.createEl("div", {cls: "emily-legend-topics"});
+			for (const topic of groupTopics) {
+				const enabled = this.enabledTopics.has(topic.name);
+				const item = items.createEl("button", {cls: "emily-legend-item"});
+				item.style.setProperty("--emily-topic-color", topic.config.color);
+				if (!enabled) item.addClass("emily-legend-disabled");
 
-			item.createEl("span", {text: topic.name});
+				const dot = item.createEl("span", {cls: "emily-legend-dot"});
+				dot.style.backgroundColor = topic.config.color;
 
-			item.addEventListener("click", () => {
-				if (this.enabledTopics.has(topic.name)) {
-					this.enabledTopics.delete(topic.name);
-				} else {
-					this.enabledTopics.add(topic.name);
-				}
-				this.buildLegend();
-				this.render();
-			});
+				item.createEl("span", {text: topic.name});
+
+				item.addEventListener("click", () => this.setTopicsEnabled([topic.name], !enabled));
+			}
 		}
 	}
 
 	private hasInitialized = false;
 
 	private async refresh(): Promise<void> {
+		// A rolling range keeps up with today when the view stays open overnight
+		if (this.presetDays !== null) this.dateRange = rangeForDays(this.presetDays);
+
 		this.topics = await this.dataService.loadData(this.dateRange);
 
 		if (!this.hasInitialized) {
@@ -266,7 +339,7 @@ export class TrackingView extends ItemView {
 			this.hasInitialized = true;
 		}
 
-		this.buildToolbar();
+		this.syncToolbar();
 		this.buildLegend();
 		this.render();
 	}
@@ -340,10 +413,12 @@ export class TrackingView extends ItemView {
 			theme,
 			onDisplayTypeChange: (name, type) => {
 				this.typeOverrides.set(name, type);
+				this.persist();
 				this.render();
 			},
 			onAggregateChange: (name, mode) => {
 				this.aggOverrides.set(name, mode);
+				this.persist();
 				this.render();
 			},
 		});
@@ -475,31 +550,16 @@ export class TrackingView extends ItemView {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		a.href = url;
-		a.download = `emily-${this.formatDateInput(this.dateRange.start)}-to-${this.formatDateInput(this.dateRange.end)}.csv`;
+		a.download = `emily-${formatDateKey(this.dateRange.start)}-to-${formatDateKey(this.dateRange.end)}.csv`;
 		a.click();
 		URL.revokeObjectURL(url);
 	}
 
 	private setRange(days: number): void {
-		const now = new Date();
-		const start = new Date(now);
-		start.setDate(start.getDate() - (days - 1));
-		start.setHours(0, 0, 0, 0);
-		const end = new Date(now);
-		end.setHours(23, 59, 59, 999);
-		this.dateRange = {start, end};
-		this.refresh();
-	}
-
-	private getDaySpan(): number {
-		const ms = this.dateRange.end.getTime() - this.dateRange.start.getTime();
-		return Math.round(ms / 86400000) || 1;
-	}
-
-	private formatDateInput(date: Date): string {
-		const y = date.getFullYear();
-		const m = String(date.getMonth() + 1).padStart(2, "0");
-		const d = String(date.getDate()).padStart(2, "0");
-		return `${y}-${m}-${d}`;
+		this.presetDays = days;
+		this.dateRange = rangeForDays(days);
+		this.syncToolbar(true);
+		this.persist();
+		void this.refresh();
 	}
 }

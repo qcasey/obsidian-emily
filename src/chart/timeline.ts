@@ -122,17 +122,31 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 		.attr("stroke", theme.gridLine)
 		.attr("stroke-dasharray", "3,3");
 
-	// Axes
+	// Axes — dates need a year once the range leaves the current one
+	const spanDays = (xExtent[1] - xExtent[0]) / 86400000;
+	const crossesYear = new Date(xExtent[0]).getFullYear() !== new Date(xExtent[1]).getFullYear();
+	const tickFormat = d3.timeFormat(spanDays > 300 ? "%b %Y" : crossesYear ? "%-m/%-d/%y" : "%-m/%-d");
 	const xAxis = d3.axisBottom(xScale)
 		.ticks(Math.min(innerWidth / 80, 10))
-		.tickFormat(d => d3.timeFormat("%-m/%-d")(d as Date));
+		.tickSize(4)
+		.tickPadding(6)
+		.tickFormat(d => tickFormat(d as Date));
 
 	g.append("g")
 		.attr("transform", `translate(0,${innerHeight})`)
 		.call(xAxis)
-		.attr("color", theme.textMuted);
+		.attr("color", theme.textMuted)
+		.call(axis => {
+			// d3 restarts its day steps at each month, which can put 10/31 right against 11/1
+			let lastX = -Infinity;
+			axis.selectAll<SVGGElement, Date>(".tick").each(function (d) {
+				const x = xScale(d);
+				if (x - lastX < 34) this.remove();
+				else lastX = x;
+			});
+		});
 
-	const yAxis = d3.axisLeft(yScale).ticks(5);
+	const yAxis = d3.axisLeft(yScale).ticks(5).tickSize(0).tickPadding(8);
 	g.append("g")
 		.call(yAxis)
 		.attr("color", theme.textMuted);
@@ -147,6 +161,8 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 		const sOp = topic.config.subtleOpacity;
 
 		const topicName = topic.name;
+		// A long range is a line, not a string of beads: points stay hoverable either way
+		const dotScale = sorted.length > innerWidth / 12 ? 0 : 1;
 
 		// Auto-spike: if only 1 entry and type is range, render as spike instead of a lone dot
 		const effectiveType = (sorted.length === 1 && topic.config.displayType === "range")
@@ -164,7 +180,8 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.datum(sorted)
 				.attr("fill", "none")
 				.attr("stroke", color)
-				.attr("stroke-width", subtle ? 1 : 2)
+				.attr("stroke-width", subtle ? 1 : 1.5)
+				.attr("stroke-linejoin", "round")
 				.attr("opacity", subtle ? sOp : 1)
 				.attr("d", line);
 
@@ -174,7 +191,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.join("circle")
 				.attr("cx", d => xScale(new Date(d.timestamp)))
 				.attr("cy", d => yScale(normalize(topicName, d.value)))
-				.attr("r", subtle ? 2.5 : 4)
+				.attr("r", (subtle ? 2 : 3) * dotScale)
 				.attr("fill", color)
 				.attr("stroke", theme.background)
 				.attr("stroke-width", subtle ? 0.5 : 1.5)
@@ -215,7 +232,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.attr("y1", yScale(0))
 				.attr("y2", d => yScale(normalize(topicName, d.value)))
 				.attr("stroke", color)
-				.attr("stroke-width", subtle ? 1.5 : 3)
+				.attr("stroke-width", subtle ? 1 : 2)
 				.attr("stroke-linecap", "round")
 				.attr("opacity", subtle ? sOp : 0.8);
 
@@ -225,7 +242,7 @@ export function renderTimeline(container: HTMLElement, options: TimelineOptions)
 				.join("circle")
 				.attr("cx", d => xScale(new Date(d.timestamp)))
 				.attr("cy", d => yScale(normalize(topicName, d.value)))
-				.attr("r", subtle ? 2.5 : 4)
+				.attr("r", (subtle ? 2 : 3) * dotScale)
 				.attr("fill", color)
 				.attr("opacity", subtle ? sOp : 1)
 				.attr("class", "emily-data-point")

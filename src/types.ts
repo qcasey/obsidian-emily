@@ -37,6 +37,23 @@ export interface DateRange {
 	end: Date;
 }
 
+export type DisplayType = "range" | "spike" | "spike_full";
+export type AggregateMode = "none" | "sum" | "average";
+
+/** What the charts view last showed, so it reopens the same way. */
+export interface ChartState {
+	/** A rolling "last N days" range ending today, or null when the dates were picked by hand. */
+	presetDays: number | null;
+	/** First day of a hand-picked range (YYYY-MM-DD). */
+	start: string;
+	/** Last day of a hand-picked range (YYYY-MM-DD), or null to keep following today. */
+	end: string | null;
+	enabledTopics: string[];
+	sections: {correlation: boolean; heatmap: boolean; timeOfDay: boolean};
+	typeOverrides: Record<string, DisplayType>;
+	aggOverrides: Record<string, AggregateMode>;
+}
+
 export interface EmilySettings {
 	dailyNotesFolder: string;
 	dailyNotesFormat: string;
@@ -98,6 +115,8 @@ export interface EmilySettings {
 	todoistIncludeTime: boolean;
 	/** Earliest date the one-time backfill reaches back to (YYYY-MM-DD). */
 	todoistBackfillSince: string;
+	/** Last range, topics and sections shown in the charts view; null until it has been used. */
+	chartState: ChartState | null;
 }
 
 export const DEFAULT_SETTINGS: EmilySettings = {
@@ -145,6 +164,7 @@ export const DEFAULT_SETTINGS: EmilySettings = {
 	todoistGroupByProject: true,
 	todoistIncludeTime: true,
 	todoistBackfillSince: "",
+	chartState: null,
 };
 
 export function hashTopicColor(name: string): string {

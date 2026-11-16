@@ -71,10 +71,9 @@ function renderTopicHeatmap(
 	const firstDayOfWeek = dates[0]?.dayOfWeek ?? 0;
 
 	// Topic label
-	container.createEl("div", {
-		cls: "emily-heatmap-label",
-		text: topic.name,
-	}).style.color = topic.config.color;
+	const labelEl = container.createEl("div", {cls: "emily-heatmap-label"});
+	labelEl.createEl("span", {cls: "emily-legend-dot"}).style.backgroundColor = topic.config.color;
+	labelEl.createEl("span", {text: topic.name});
 
 	// Wrapper: day-of-week labels + grid side by side
 	const wrapper = container.createEl("div", {cls: "emily-heatmap-wrapper"});

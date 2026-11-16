@@ -1,68 +1,119 @@
-.emily-view {
-	padding: 16px 32px;
+/* ── Charts view ── */
+
+/* Everything is built on Obsidian's own variables, so it follows the theme in light and dark. */
+.emily-view,
+.emily-embed {
+	--emily-fill: color-mix(in srgb, var(--text-normal) 8%, transparent);
+	--emily-fill-hover: color-mix(in srgb, var(--text-normal) 5%, transparent);
+	--emily-card: color-mix(in srgb, var(--background-secondary) 70%, var(--background-primary));
+	--emily-rule: var(--background-modifier-border);
+}
+
+/* Sized by its own width, not the window's: the same view works in a sidebar, a phone and a wide pane. */
+.workspace-leaf-content .view-content.emily-view {
+	container: emily / inline-size;
+	padding: 0 0 var(--size-4-8);
 	overflow-y: auto;
 	position: relative;
 }
 
-/* Toolbar */
-.emily-toolbar {
+.emily-view > * {
+	--emily-gutter: var(--size-4-8);
+	margin-inline: var(--emily-gutter);
+}
+
+@container emily (max-width: 600px) {
+	.emily-view > * {
+		--emily-gutter: var(--size-4-3);
+	}
+}
+
+/* Toolbar: sticks to the top while the charts scroll under it */
+.emily-view .emily-toolbar {
+	position: sticky;
+	top: 0;
+	z-index: 5;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	justify-content: center;
-	gap: 12px;
-	margin-bottom: 12px;
+	gap: var(--size-4-1) var(--size-4-3);
+	margin: 0 0 var(--size-4-2);
+	padding: var(--size-4-2) var(--emily-gutter);
+	background: var(--background-primary);
 }
 
-.emily-presets {
+.emily-presets,
+.emily-section-toggles {
 	display: flex;
-	gap: 4px;
+	flex-wrap: wrap;
+	gap: var(--size-2-1);
 }
 
-.emily-preset-btn {
-	padding: 4px 12px;
-	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
+.emily-view .emily-section-toggles {
+	margin-left: auto;
+}
+
+/* Pills: no box until hovered, a soft fill when active */
+.emily-view .emily-preset-btn {
+	height: auto;
+	min-height: 26px;
+	padding: var(--size-2-1) 10px;
+	border: none;
+	border-radius: 999px;
+	background: transparent;
+	box-shadow: none;
 	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
 	cursor: pointer;
-	font-size: 13px;
-	min-height: 30px;
 }
 
-.emily-preset-btn:hover {
-	background: var(--background-modifier-hover);
+.emily-view .emily-preset-btn:hover {
+	background: var(--emily-fill-hover);
+	color: var(--text-normal);
 }
 
-.emily-preset-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-color: var(--interactive-accent);
+.emily-view .emily-preset-btn.emily-preset-active {
+	background: var(--emily-fill);
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
 }
 
 .emily-date-inputs {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--size-2-1);
 }
 
-.emily-date-inputs input[type="date"] {
-	padding: 4px 8px;
-	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
+.emily-view .emily-date-inputs input[type="date"] {
+	width: auto;
+	height: auto;
+	min-height: 26px;
+	padding: var(--size-2-1) 6px;
+	border: none;
+	border-radius: 999px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
+}
+
+.emily-view .emily-date-inputs input[type="date"]:hover,
+.emily-view .emily-date-inputs input[type="date"]:focus {
+	background: var(--emily-fill-hover);
 	color: var(--text-normal);
-	font-size: 13px;
+}
+
+/* Hand-picked dates are the active range when no preset is */
+.emily-view .emily-date-inputs.emily-preset-active input[type="date"] {
+	background: var(--emily-fill);
+	color: var(--text-normal);
 }
 
 .emily-date-sep {
-	color: var(--text-muted);
-	font-size: 13px;
-}
-
-.emily-section-toggles {
-	display: flex;
-	gap: 4px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
 }
 
 /* Legend */
@@ -73,39 +124,88 @@
 	margin-bottom: 12px;
 }
 
+/* The charts view lists topics one category per row, each led by its on/off pill */
+.emily-view .emily-legend {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	align-items: start;
+	gap: var(--size-2-3) var(--size-4-2);
+	margin-bottom: var(--size-4-4);
+}
+
+.emily-legend-group {
+	display: contents;
+}
+
+.emily-legend-topics {
+	grid-column: 2;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-1);
+	min-width: 0;
+}
+
 .emily-legend-item {
 	display: inline-flex;
 	align-items: center;
 	gap: 5px;
 	padding: 3px 10px;
-	border-radius: 14px;
-	border: 1px solid color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-border)) 30%, var(--background-modifier-border));
-	background: color-mix(in srgb, var(--emily-topic-color, transparent) 8%, var(--background-secondary));
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--emily-topic-color, var(--text-normal)) 12%, transparent);
 	color: var(--text-normal);
+	font-size: var(--font-ui-smaller);
+	min-height: 26px;
+}
+
+.emily-view .emily-legend-item {
+	height: auto;
+	border: none;
+	box-shadow: none;
 	cursor: pointer;
-	font-size: 12px;
-	min-height: 28px;
-	transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+	transition: background-color 0.15s, color 0.15s;
 }
 
-.emily-legend-item:hover {
-	background: color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-hover)) 15%, var(--background-secondary));
-	border-color: color-mix(in srgb, var(--emily-topic-color, var(--background-modifier-border)) 50%, var(--background-modifier-border));
+.emily-view .emily-legend-item:hover {
+	background: color-mix(in srgb, var(--emily-topic-color, var(--text-normal)) 22%, transparent);
 }
 
-.emily-legend-disabled {
-	opacity: 0.35;
-	text-decoration: line-through;
+/* Off: no fill, quiet text, a hollow dot */
+.emily-view .emily-legend-item.emily-legend-disabled {
+	background: transparent;
+	color: var(--text-muted);
 }
 
-.emily-toggle-all,
-.emily-toggle-group {
-	font-weight: 600;
-	background: var(--background-modifier-hover);
+.emily-view .emily-legend-item.emily-legend-disabled:hover {
+	background: var(--emily-fill-hover);
+	color: var(--text-normal);
 }
 
-.emily-toggle-group {
-	font-style: italic;
+.emily-legend-disabled .emily-legend-dot {
+	opacity: 0.4;
+}
+
+/* Category switches read as labels: neutral, never topic-coloured */
+.emily-view .emily-legend-item.emily-toggle-all,
+.emily-view .emily-legend-item.emily-toggle-group {
+	grid-column: 1;
+	justify-content: center;
+	background: var(--emily-fill);
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.emily-view .emily-legend-item.emily-toggle-all,
+.emily-view .emily-legend-item.emily-toggle-group.emily-legend-partial,
+.emily-view .emily-legend-item.emily-toggle-group.emily-legend-disabled {
+	background: transparent;
+	color: var(--text-muted);
+	box-shadow: inset 0 0 0 1px var(--emily-rule);
+}
+
+.emily-view .emily-legend-item.emily-toggle-all:hover,
+.emily-view .emily-legend-item.emily-toggle-group:hover {
+	background: var(--emily-fill-hover);
+	color: var(--text-normal);
 }
 
 .emily-legend-dot {
@@ -117,14 +217,39 @@
 
 /* Chart */
 .emily-chart {
-	width: 100%;
 	min-height: 280px;
 	max-height: 500px;
-	margin-bottom: 20px;
+	margin-bottom: var(--size-4-5);
 }
 
-.emily-chart svg {
+.emily-chart svg,
+.emily-timeofday svg,
+.emily-correlation-cell svg {
 	display: block;
+}
+
+/* Axes: numbers only, in the interface font, with no ruled frame */
+.emily-chart svg text,
+.emily-timeofday svg text,
+.emily-correlation-cell svg text {
+	font-family: var(--font-interface);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Charts redraw a moment after the pane is resized; until then, shrink rather than spill */
+.emily-chart svg,
+.emily-timeofday svg {
+	max-width: 100%;
+}
+
+.emily-chart .domain,
+.emily-timeofday .domain {
+	display: none;
+}
+
+.emily-chart .tick line,
+.emily-timeofday .tick line {
+	stroke: var(--emily-rule);
 }
 
 .emily-chart-empty {
@@ -133,21 +258,23 @@
 	justify-content: center;
 	min-height: 200px;
 	color: var(--text-muted);
-	font-size: 14px;
+	font-size: var(--font-ui-small);
 }
 
 /* Tooltip */
 .emily-tooltip {
 	position: absolute;
 	z-index: 100;
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	padding: 8px 12px;
-	font-size: 13px;
+	margin: 0;
+	background: var(--background-primary);
+	border: 1px solid var(--emily-rule);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-2) var(--size-4-3);
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
 	max-width: 260px;
 	pointer-events: auto;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	box-shadow: var(--shadow-s);
 	line-height: 1.4;
 }
 
@@ -167,7 +294,7 @@
 
 .emily-tooltip-time {
 	color: var(--text-muted);
-	font-size: 12px;
+	font-size: var(--font-ui-smaller);
 }
 
 .emily-tooltip-date-link {
@@ -186,77 +313,79 @@
 	color: var(--text-muted);
 }
 
-/* Section titles */
+/* Sections below the main chart */
+.emily-correlation:not(:empty),
+.emily-heatmap:not(:empty),
+.emily-timeofday:not(:empty) {
+	margin-top: var(--size-4-8);
+}
+
 .emily-section-title {
-	font-size: 15px;
-	font-weight: 600;
-	color: var(--text-normal);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	margin-bottom: 10px;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-2);
 }
 
 /* Correlation */
-.emily-correlation {
-	margin-top: 40px;
-	margin-bottom: 40px;
-}
-
 .emily-correlation-grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+	gap: var(--size-4-3);
 }
 
 .emily-correlation-cell {
-	flex: 1 1 240px;
-	max-width: 320px;
-}
-
-.emily-correlation-cell svg {
-	display: block;
+	min-width: 0;
+	padding: var(--size-4-3);
+	border-radius: var(--radius-m);
+	background: var(--emily-card);
 }
 
 .emily-correlation-desc {
-	font-size: 12px;
-	color: var(--text-muted);
-	opacity: 0.7;
-	margin-bottom: 10px;
+	max-width: 70ch;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	margin-bottom: var(--size-4-3);
 	line-height: 1.4;
 }
 
 .emily-correlation-label {
-	font-size: 10px;
+	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	margin-top: 4px;
+	margin-top: var(--size-4-1);
 	line-height: 1.4;
 	text-align: center;
 }
 
 .emily-correlation-r {
-	font-weight: 600;
+	font-weight: var(--font-semibold);
+	font-variant-numeric: tabular-nums;
 	color: var(--text-normal);
 }
 
 /* Heatmap */
-.emily-heatmap {
-	margin-top: 40px;
-	margin-bottom: 40px;
-}
-
 .emily-heatmap-grid {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 16px;
+	gap: var(--size-4-4);
 }
 
+/* A long range is wider than the pane: let that one calendar scroll, not the page */
 .emily-heatmap-cell {
-	flex: 0 0 auto;
+	flex: 0 1 auto;
+	max-width: 100%;
+	overflow-x: auto;
 }
 
 .emily-heatmap-label {
-	font-size: 12px;
-	font-weight: 600;
+	position: sticky;
+	left: 0;
+	font-size: var(--font-ui-smaller);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: max-content;
+	font-weight: var(--font-semibold);
 	margin-bottom: 4px;
 }
 
@@ -264,6 +393,7 @@
 	display: flex;
 	gap: 4px;
 	align-items: start;
+	width: max-content;
 }
 
 .emily-heatmap-day-labels {
@@ -275,7 +405,7 @@
 
 .emily-heatmap-day-label {
 	font-size: 9px;
-	color: var(--text-muted);
+	color: var(--text-faint);
 	line-height: 18px;
 	text-align: right;
 	padding-right: 2px;
@@ -293,8 +423,8 @@
 }
 
 .emily-heatmap-day--no-data {
-	background-color: var(--background-modifier-border);
-	opacity: 0.15;
+	background-color: var(--emily-rule);
+	opacity: 0.35;
 }
 
 .emily-heatmap-day--empty {
@@ -307,13 +437,7 @@
 
 /* Time of day */
 .emily-timeofday {
-	margin-top: 40px;
-	margin-bottom: 40px;
-	width: 100%;
-}
-
-.emily-timeofday svg {
-	display: block;
+	min-width: 0;
 }
 
 /* Export */
@@ -321,42 +445,49 @@
 	font-weight: 600;
 }
 
-/* Stats */
+/* Stats: one card per topic */
 .emily-stats-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+	gap: var(--size-4-3);
 }
 
 .emily-stat-card {
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
-	border-left: 3px solid;
-	border-radius: 6px;
-	padding: 16px 20px;
+	min-width: 0;
+	background: var(--emily-card);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-3) var(--size-4-4);
 }
 
 .emily-stat-header {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	margin-bottom: 8px;
+	margin-bottom: var(--size-4-2);
 }
 
 .emily-stat-controls {
 	margin-left: auto;
 	display: flex;
-	gap: 4px;
+	gap: 0;
 }
 
-.emily-type-select {
-	padding: 1px 4px;
-	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-primary);
-	color: var(--text-muted);
-	font-size: 11px;
+.emily-stat-card .emily-type-select {
+	height: auto;
+	padding: 1px var(--size-4-4) 1px var(--size-4-2);
+	border: none;
+	border-radius: 999px;
+	background-color: transparent;
+	box-shadow: none;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
 	cursor: pointer;
+}
+
+.emily-stat-card .emily-type-select:hover,
+.emily-stat-card .emily-type-select:focus {
+	background-color: var(--emily-fill);
+	color: var(--text-normal);
 }
 
 .emily-stat-dot {
@@ -367,43 +498,43 @@
 }
 
 .emily-stat-name {
-	font-weight: 600;
-	font-size: 14px;
+	font-weight: var(--font-semibold);
+	font-size: var(--font-ui-small);
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 .emily-stat-metrics {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: space-around;
-	gap: 12px 8px;
-	padding: 8px 0;
+	gap: var(--size-4-2) var(--size-4-4);
 }
 
 .emily-metric {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	flex: 1 1 0;
-	min-width: 45px;
-	text-align: center;
-	padding: 0 4px;
+	min-width: 40px;
 }
 
 .emily-metric-value {
-	font-size: 16px;
-	font-weight: 600;
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-semibold);
+	font-variant-numeric: tabular-nums;
 	line-height: 1.2;
 }
 
+/* The first figure is the headline; the rest support it */
+.emily-metric:first-child .emily-metric-value {
+	font-size: 1.6em;
+}
+
 .emily-metric-label {
-	font-size: 10px;
+	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	text-transform: uppercase;
-	letter-spacing: 0.3px;
 }
 
 .emily-sparkline {
-	margin-top: 8px;
+	margin-top: var(--size-4-2);
 }
 
 .emily-sparkline svg {
@@ -412,65 +543,46 @@
 	height: 30px;
 }
 
-/* Mobile */
-@media (max-width: 600px) {
-	.emily-view {
-		padding: 10px;
-		display: flex;
-		flex-direction: column;
+@container emily (max-width: 600px) {
+	.emily-view .emily-toolbar {
+		gap: var(--size-2-1) var(--size-4-2);
 	}
 
-	.emily-chart {
-		order: 1;
+	.emily-view .emily-section-toggles {
+		margin-left: 0;
 	}
 
-	.emily-toolbar {
-		order: 2;
-		flex-direction: column;
-		align-items: flex-start;
+	/* Too narrow for a label column: each category's pill sits above its topics */
+	.emily-view .emily-legend {
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--size-2-2);
 	}
 
-	.emily-legend {
-		order: 3;
+	.emily-view .emily-legend-topics {
+		grid-column: 1;
+		margin-bottom: var(--size-4-2);
 	}
 
-	.emily-stats {
-		order: 4;
+	.emily-view .emily-legend-item.emily-toggle-all,
+	.emily-view .emily-legend-item.emily-toggle-group {
+		justify-self: start;
 	}
 
-	.emily-tooltip {
-		order: 5;
+	.emily-view .emily-legend-item {
+		min-height: 30px;
 	}
 
-	.emily-stats-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.emily-legend-item {
-		min-height: 36px;
-		padding: 4px 12px;
-	}
-
-	.emily-presets {
-		display: none;
-	}
-
-	.emily-preset-dropdown {
-		display: block;
+	.emily-view .emily-preset-btn,
+	.emily-view .emily-date-inputs input[type="date"] {
+		min-height: 32px;
 	}
 }
 
-.emily-preset-dropdown {
-	display: none;
-}
-
-.emily-preset-dropdown select {
-	padding: 4px 8px;
-	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	font-size: 13px;
+@media (prefers-reduced-motion: reduce) {
+	.emily-view *,
+	.emily-embed * {
+		transition: none !important;
+	}
 }
 
 /* Embed */
